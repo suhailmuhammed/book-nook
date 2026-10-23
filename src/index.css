@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens ─────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Navy-based primary palette */
+    --background:        220 33% 98%;
+    --foreground:        228 35% 12%;
+    --card:              0 0% 100%;
+    --card-foreground:   228 35% 12%;
+    --popover:           0 0% 100%;
+    --popover-foreground:228 35% 12%;
+
+    /* Deep navy primary */
+    --primary:           228 56% 28%;
+    --primary-foreground:220 100% 97%;
+
+    /* Muted teal secondary */
+    --secondary:         172 40% 94%;
+    --secondary-foreground:174 65% 28%;
+
+    /* Muted backgrounds */
+    --muted:             220 20% 95%;
+    --muted-foreground:  220 15% 46%;
+
+    /* Teal accent */
+    --accent:            174 54% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive:       0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border:            220 18% 88%;
+    --input:             220 18% 88%;
+    --ring:              228 56% 28%;
+
+    --radius:            0.5rem;
+
+    /* Custom semantic tokens */
+    --sidebar-bg:        228 50% 22%;
+    --sidebar-fg:        220 60% 92%;
+    --sidebar-muted:     228 30% 45%;
+    --sidebar-accent:    174 54% 42%;
+    --sidebar-border:    228 40% 32%;
+
+    --status-available:  158 60% 38%;
+    --status-borrowed:   215 70% 45%;
+    --status-reserved:   270 55% 52%;
+    --status-lost:       0 68% 48%;
+    --status-repair:     35 80% 46%;
+  }
+}
+
+/* ─── Base Styles ───────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+/* ─── Component Styles ──────────────────────────────────────── */
+@layer components {
+
+  /* Sidebar */
+  .sidebar {
+    background: hsl(var(--sidebar-bg));
+    color: hsl(var(--sidebar-fg));
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150;
+    color: hsl(var(--sidebar-muted));
+  }
+
+  .sidebar-link:hover {
+    background: hsl(var(--sidebar-border));
+    color: hsl(var(--sidebar-fg));
+  }
+
+  .sidebar-link.active {
+    background: hsl(var(--sidebar-accent) / 0.2);
+    color: hsl(var(--sidebar-accent));
+    border-left: 3px solid hsl(var(--sidebar-accent));
+  }
+
+  /* Status badges */
+  .badge-available {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+  .badge-borrowed {
+    @apply bg-blue-50 text-blue-700 border border-blue-200;
+  }
+  .badge-reserved {
+    @apply bg-purple-50 text-purple-700 border border-purple-200;
+  }
+  .badge-lost {
+    @apply bg-red-50 text-red-700 border border-red-200;
+  }
+  .badge-repair {
+    @apply bg-amber-50 text-amber-700 border border-amber-200;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply bg-card rounded-xl border shadow-sm p-5 flex flex-col gap-1 transition-shadow hover:shadow-md;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  /* Table styles */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table thead tr {
+    @apply border-b;
+  }
+
+  .data-table thead th {
+    @apply px-4 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap;
+  }
+
+  .data-table tbody tr {
+    @apply border-b transition-colors hover:bg-muted/40;
+  }
+
+  .data-table tbody td {
+    @apply px-4 py-3;
+  }
+
+  /* Book cover placeholder */
+  .book-cover-placeholder {
+    @apply flex items-center justify-center bg-gradient-to-br from-navy-100 to-teal-100
+           text-navy-400 rounded font-serif text-xs text-center leading-tight;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+}
+
+/* ─── Utility Extensions ────────────────────────────────────── */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
