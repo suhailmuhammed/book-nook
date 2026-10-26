@@ -14,6 +14,7 @@ import { PageLoader } from '@/components/ui/states'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import { testGoogleBooksApiKey } from '@/lib/utils'
+import { DemoDataMaintenance } from '@/components/maintenance/DemoDataMaintenance'
 
 const TIMEZONES = [
   'Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore', 'Europe/London',
@@ -305,6 +306,9 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Demo Data & Maintenance Section */}
+      <DemoDataMaintenance />
     </div>
   )
 }

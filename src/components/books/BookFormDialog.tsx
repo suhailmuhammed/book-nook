@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Loader2, ExternalLink } from 'lucide-react'
+import { Search, Loader2, ExternalLink, ChevronDown, Check, User } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { BookCover } from '@/components/ui/book-cover'
 import { useCreateBook, useUpdateBook, useGenerateBookCode } from '@/hooks/use-books'
+import { useEmployees } from '@/hooks/use-employees'
 import { searchGoogleBooks, type GoogleBooksSearchResult, today } from '@/lib/utils'
 import type { Book } from '@/lib/database.types'
 
@@ -56,6 +57,21 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
   const createBook = useCreateBook()
   const updateBook = useUpdateBook()
   const { data: autoBookCode, refetch: refetchBookCode } = useGenerateBookCode()
+  const { data: empsData } = useEmployees({ isActive: true, pageSize: 200 })
+  const employees = empsData?.employees ?? []
+  const [showOwnedBySuggestions, setShowOwnedBySuggestions] = useState(false)
+  const ownedByRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ownedByRef.current && !ownedByRef.current.contains(e.target as Node)) {
+        setShowOwnedBySuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const [gbSearch, setGbSearch]       = useState('')
   const [gbType, setGbType]           = useState<'isbn' | 'title' | 'author'>('title')
   const [gbResults, setGbResults]     = useState<GoogleBooksSearchResult[]>([])
@@ -443,10 +459,97 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
               />
             </div>
 
-            {/* Owned By */}
-            <div className="space-y-1.5">
-              <Label htmlFor="book-owned-input">Owned By / Department</Label>
-              <Input id="book-owned-input" {...form.register('owned_by')} placeholder="Engineering" />
+            {/* Owned By with Employee Suggestions */}
+            <div className="space-y-1.5 relative" ref={ownedByRef}>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="book-owned-input">Owned By</Label>
+                <span className="text-[11px] text-muted-foreground">Select team member or custom</span>
+              </div>
+              <div className="relative">
+                <Input
+                  id="book-owned-input"
+                  {...form.register('owned_by')}
+                  onFocus={() => setShowOwnedBySuggestions(true)}
+                  placeholder="Select employee or enter custom owner"
+                  autoComplete="off"
+                  className="pr-8"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowOwnedBySuggestions(v => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                  title="Show employee suggestions"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showOwnedBySuggestions ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* Suggestions Dropdown */}
+              {showOwnedBySuggestions && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border rounded-xl shadow-xl p-1.5 max-h-56 overflow-y-auto text-xs space-y-0.5 animate-fade-in">
+                  {/* Default / Common Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      form.setValue('owned_by', 'Office Collection')
+                      setShowOwnedBySuggestions(false)
+                    }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between font-medium transition-colors ${
+                      (form.watch('owned_by') || '') === 'Office Collection' ? 'bg-forest/10 text-forest font-semibold' : 'hover:bg-muted text-forest'
+                    }`}
+                  >
+                    <span>🏢 Office Collection (Default)</span>
+                    {(form.watch('owned_by') || '') === 'Office Collection' && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+
+                  <div className="border-t my-1 opacity-50" />
+                  <p className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Office Team Members ({employees.length})
+                  </p>
+
+                  {employees.filter(e => {
+                    const q = (form.watch('owned_by') || '').toLowerCase()
+                    return e.full_name.toLowerCase().includes(q) ||
+                      (e.department && e.department.toLowerCase().includes(q)) ||
+                      (e.employee_code && e.employee_code.toLowerCase().includes(q))
+                  }).length === 0 ? (
+                    <p className="px-2.5 py-2 text-muted-foreground text-center">
+                      No matching team members. Custom owner will be saved.
+                    </p>
+                  ) : (
+                    employees.filter(e => {
+                      const q = (form.watch('owned_by') || '').toLowerCase()
+                      return e.full_name.toLowerCase().includes(q) ||
+                        (e.department && e.department.toLowerCase().includes(q)) ||
+                        (e.employee_code && e.employee_code.toLowerCase().includes(q))
+                    }).map(emp => {
+                      const isSelected = (form.watch('owned_by') || '').toLowerCase() === emp.full_name.toLowerCase()
+                      return (
+                        <button
+                          key={emp.id}
+                          type="button"
+                          onClick={() => {
+                            form.setValue('owned_by', emp.full_name)
+                            setShowOwnedBySuggestions(false)
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between transition-colors ${
+                            isSelected ? 'bg-forest/10 text-forest font-semibold' : 'hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{emp.full_name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {emp.department || 'General'} · <span className="font-mono">{emp.employee_code}</span>
+                            </p>
+                          </div>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-forest shrink-0" />}
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Shelf Number */}

@@ -11,7 +11,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { BookCover } from '@/components/ui/book-cover'
 import { useReturnBook } from '@/hooks/use-borrowings'
+import { useBookWaitingList } from '@/hooks/use-requests'
 import { formatDate, today } from '@/lib/utils'
+import { Bookmark, Users } from 'lucide-react'
 import type { BorrowingWithDetails } from '@/lib/database.types'
 
 const schema = z.object({
@@ -30,6 +32,8 @@ interface ReturnBookDialogProps {
 
 export function ReturnBookDialog({ open, onOpenChange, loan }: ReturnBookDialogProps) {
   const returnBook = useReturnBook()
+  const { data: waitingList = [] } = useBookWaitingList(open ? loan.book_id : undefined)
+  const nextRequester = waitingList.length > 0 ? waitingList[0] : null
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -70,6 +74,19 @@ export function ReturnBookDialog({ open, onOpenChange, loan }: ReturnBookDialogP
             </p>
           </div>
         </div>
+
+        {/* Waiting List Alert for Librarian */}
+        {nextRequester && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 font-semibold text-amber-900">
+              <Bookmark className="h-4 w-4 text-amber-700 flex-shrink-0" />
+              <span>Next in Waiting List: {nextRequester.employee?.full_name} (#{nextRequester.queue_position})</span>
+            </div>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Upon confirming return, this book can be reserved and marked &ldquo;Ready for Pickup&rdquo; for {nextRequester.employee?.full_name} in Operations &gt; Waiting Lists.
+            </p>
+          </div>
+        )}
 
         <form id="return-book-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Return Date */}

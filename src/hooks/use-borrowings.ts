@@ -107,6 +107,10 @@ export function useIssueBook() {
       qc.invalidateQueries({ queryKey: ['books'] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
       qc.invalidateQueries({ queryKey: ['recent-activity'] })
+      qc.invalidateQueries({ queryKey: ['book-waiting-list'] })
+      qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
+      qc.invalidateQueries({ queryKey: ['all-book-requests'] })
+      qc.invalidateQueries({ queryKey: ['employee-requests'] })
       toast({ title: 'Book issued', description: 'The loan has been recorded.', variant: 'success' as never })
     },
     onError: (err: Error) => {
@@ -140,6 +144,10 @@ export function useReturnBook() {
       qc.invalidateQueries({ queryKey: ['books'] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
       qc.invalidateQueries({ queryKey: ['recent-activity'] })
+      qc.invalidateQueries({ queryKey: ['book-waiting-list'] })
+      qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
+      qc.invalidateQueries({ queryKey: ['all-book-requests'] })
+      qc.invalidateQueries({ queryKey: ['employee-requests'] })
       toast({ title: 'Return recorded', description: 'The book has been returned.', variant: 'success' as never })
     },
     onError: (err: Error) => {

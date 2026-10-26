@@ -14,6 +14,7 @@ export type Json =
 export type BookStatus = 'Available' | 'Borrowed' | 'Reserved' | 'Lost' | 'Under Repair'
 export type BookCondition = 'Excellent' | 'Good' | 'Fair' | 'Poor'
 export type MetadataSource = 'manual' | 'google_books' | 'import'
+export type RequestStatus = 'Waiting' | 'Ready for Pickup' | 'Fulfilled' | 'Cancelled' | 'Expired'
 
 export interface Database {
   public: {
@@ -44,6 +45,7 @@ export interface Database {
           created_at: string
           updated_at: string
           archived_at: string | null
+          is_demo?: boolean
         }
         Insert: {
           id?: string
@@ -70,6 +72,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           archived_at?: string | null
+          is_demo?: boolean
         }
         Update: {
           id?: string
@@ -95,6 +98,7 @@ export interface Database {
           metadata_updated_at?: string | null
           updated_at?: string
           archived_at?: string | null
+          is_demo?: boolean
         }
       }
       employees: {
@@ -145,6 +149,7 @@ export interface Database {
           created_by: string | null
           created_at: string
           updated_at: string
+          is_demo?: boolean
         }
         Insert: {
           id?: string
@@ -159,6 +164,7 @@ export interface Database {
           created_by?: string | null
           created_at?: string
           updated_at?: string
+          is_demo?: boolean
         }
         Update: {
           id?: string
@@ -171,6 +177,7 @@ export interface Database {
           return_remarks?: string | null
           return_condition?: BookCondition | null
           updated_at?: string
+          is_demo?: boolean
         }
       }
       reviews: {
@@ -256,6 +263,73 @@ export interface Database {
           updated_at?: string
         }
       }
+      book_requests: {
+        Row: {
+          id: string
+          book_id: string
+          employee_id: string
+          status: RequestStatus
+          queue_position: number
+          request_date: string
+          notified_at: string | null
+          notes: string | null
+          is_demo?: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          book_id: string
+          employee_id: string
+          status?: RequestStatus
+          queue_position?: number
+          request_date?: string
+          notified_at?: string | null
+          notes?: string | null
+          is_demo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          book_id?: string
+          employee_id?: string
+          status?: RequestStatus
+          queue_position?: number
+          request_date?: string
+          notified_at?: string | null
+          notes?: string | null
+          is_demo?: boolean
+          updated_at?: string
+        }
+      }
+      queue_audit_logs: {
+        Row: {
+          id: string
+          book_id: string
+          request_id: string | null
+          employee_id: string | null
+          action: string
+          prev_position: number | null
+          new_position: number | null
+          reason: string | null
+          performed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          book_id: string
+          request_id?: string | null
+          employee_id?: string | null
+          action: string
+          prev_position?: number | null
+          new_position?: number | null
+          reason?: string | null
+          performed_by?: string | null
+          created_at?: string
+        }
+        Update: never
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -315,9 +389,21 @@ export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
 export type AppSettings = Database['public']['Tables']['app_settings']['Row']
 export type AppSettingsUpdate = Database['public']['Tables']['app_settings']['Update']
 
+export type BookRequest = Database['public']['Tables']['book_requests']['Row']
+export type BookRequestInsert = Database['public']['Tables']['book_requests']['Insert']
+export type BookRequestUpdate = Database['public']['Tables']['book_requests']['Update']
+
+export type QueueAuditLog = Database['public']['Tables']['queue_audit_logs']['Row']
+export type QueueAuditLogInsert = Database['public']['Tables']['queue_audit_logs']['Insert']
+
 // Joined types for common queries
 export type BorrowingWithDetails = Borrowing & {
   book: Pick<Book, 'id' | 'book_code' | 'title' | 'cover_image_url' | 'status'>
+  employee: Pick<Employee, 'id' | 'full_name' | 'department' | 'employee_code'>
+}
+
+export type BookRequestWithDetails = BookRequest & {
+  book: Pick<Book, 'id' | 'book_code' | 'title' | 'cover_image_url' | 'status' | 'condition'>
   employee: Pick<Employee, 'id' | 'full_name' | 'department' | 'employee_code'>
 }
 
@@ -325,4 +411,5 @@ export type BookWithStats = Book & {
   active_borrowing?: BorrowingWithDetails | null
   review_count?: number
   average_rating?: number
+  waiting_count?: number
 }

@@ -3,14 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   BookMarked, BookOpen, Users, Bookmark, Star, ArrowRight,
   Sparkles, CheckCircle2, ShieldCheck, HeartHandshake, Compass,
-  ChevronRight, Search, LogIn, Check, Info, Library
+  ChevronRight, Search, LogIn, Check, Info, Library, Loader2, AlertCircle, RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BookCover } from '@/components/ui/book-cover'
 import { BookDetailDialog } from '@/components/books/BookDetailDialog'
+import { EmployeePortalDialog } from '@/components/portal/EmployeePortalDialog'
 import { useBooks } from '@/hooks/use-books'
 import { useEmployees } from '@/hooks/use-employees'
 import { usePublicLibraryStats } from '@/hooks/use-public-stats'
+import { useAllWaitingLists } from '@/hooks/use-requests'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Book, Employee } from '@/lib/database.types'
 
@@ -18,10 +20,16 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: stats, isLoading: statsLoading } = usePublicLibraryStats()
-  const { data: booksData, isLoading: booksLoading } = useBooks({ status: 'Available', pageSize: 40 })
-  const { data: empsData, isLoading: empsLoading } = useEmployees({ isActive: true, pageSize: 200 })
+  const { data: booksData, isLoading: booksLoading } = useBooks({ pageSize: 100 })
+  const {
+    data: empsData,
+    isLoading: empsLoading,
+    error: empsError,
+    refetch: refetchEmployees
+  } = useEmployees({ isActive: true, pageSize: 200 })
+  const { data: waitingListData = [] } = useAllWaitingLists()
 
-  const availableBooks = booksData?.books ?? []
+  const allBooks = booksData?.books ?? []
   const employees = empsData?.employees ?? []
 
   // Visitor selection state (stored in sessionStorage for browsing convenience)
@@ -34,13 +42,27 @@ export default function HomePage() {
   const [visitorError, setVisitorError] = useState<string | null>(null)
   const [empSearch, setEmpSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(0)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   // Category filter for public available books
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [detailBook, setDetailBook] = useState<Book | null>(null)
+  const [portalOpen, setPortalOpen] = useState(false)
 
   const availableSectionRef = useRef<HTMLElement>(null)
+
+  const currentEmployee = employees.find(e => e.id === selectedEmpId) || null
+
+  // Filter categories
+  const categories = Array.from(
+    new Set(allBooks.map(b => b.category).filter(Boolean))
+  ) as string[]
+
+  const filteredBooks = selectedCategory === 'all'
+    ? allBooks
+    : allBooks.filter(b => b.category === selectedCategory)
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -53,6 +75,11 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Reset highlightedIndex when search term or dropdown open changes
+  useEffect(() => {
+    setHighlightedIndex(0)
+  }, [empSearch, dropdownOpen])
+
   function handleSelectEmployee(emp: Employee) {
     setSelectedEmpId(emp.id)
     setVisitorName(emp.full_name)
@@ -60,6 +87,8 @@ export default function HomePage() {
     setDropdownOpen(false)
     sessionStorage.setItem('booknook_visitor_emp_id', emp.id)
     sessionStorage.setItem('booknook_visitor_name', emp.full_name)
+    // Opens or personalizes their employee portal without password
+    setPortalOpen(true)
   }
 
   function handleClearVisitor() {
@@ -79,19 +108,51 @@ export default function HomePage() {
     availableSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Filter categories
-  const categories = Array.from(
-    new Set(availableBooks.map(b => b.category).filter(Boolean))
-  ) as string[]
-
-  const filteredBooks = selectedCategory === 'all'
-    ? availableBooks
-    : availableBooks.filter(b => b.category === selectedCategory)
-
   const filteredEmployees = employees.filter(e =>
     e.full_name.toLowerCase().includes(empSearch.toLowerCase()) ||
-    (e.department && e.department.toLowerCase().includes(empSearch.toLowerCase()))
+    (e.department && e.department.toLowerCase().includes(empSearch.toLowerCase())) ||
+    (e.employee_code && e.employee_code.toLowerCase().includes(empSearch.toLowerCase()))
   )
+
+  // Scroll active item into view
+  useEffect(() => {
+    if (dropdownOpen && listRef.current) {
+      const activeEl = listRef.current.querySelector('[data-highlighted="true"]')
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest' })
+      }
+    }
+  }, [highlightedIndex, dropdownOpen])
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!dropdownOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault()
+        setDropdownOpen(true)
+      }
+      return
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightedIndex(prev =>
+        filteredEmployees.length > 0 ? (prev + 1) % filteredEmployees.length : 0
+      )
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightedIndex(prev =>
+        filteredEmployees.length > 0 ? (prev - 1 + filteredEmployees.length) % filteredEmployees.length : 0
+      )
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filteredEmployees.length > 0 && filteredEmployees[highlightedIndex]) {
+        handleSelectEmployee(filteredEmployees[highlightedIndex])
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setDropdownOpen(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-warmwhite text-foreground flex flex-col font-sans">
@@ -117,17 +178,34 @@ export default function HomePage() {
           </Link>
 
           {/* Right actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {visitorName && (
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-xs text-white/90 border border-white/15">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Visiting as <strong className="font-semibold text-white">{visitorName}</strong></span>
-                <button
-                  onClick={handleClearVisitor}
-                  className="text-white/60 hover:text-white underline text-[11px] ml-1"
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Button
+                  id="my-portal-btn"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPortalOpen(true)}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs h-8 sm:h-9"
                 >
-                  Change
-                </button>
+                  <BookMarked className="h-3.5 w-3.5 mr-1 text-gold" />
+                  <span className="hidden sm:inline">My Portal</span>
+                  <span className="sm:hidden">Portal</span>
+                </Button>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/10 text-xs text-white/90 border border-white/15">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                  <span className="max-w-[100px] sm:max-w-[180px] truncate">
+                    <span className="hidden sm:inline">Visiting as </span>
+                    <strong className="font-semibold text-white">{visitorName}</strong>
+                  </span>
+                  <button
+                    onClick={handleClearVisitor}
+                    className="text-white/60 hover:text-white underline text-[11px] ml-1"
+                    title="Change employee"
+                  >
+                    Change
+                  </button>
+                </div>
               </div>
             )}
 
@@ -156,18 +234,18 @@ export default function HomePage() {
       </header>
 
       {/* ─── Hero Section ───────────────────────────────────── */}
-      <section className="relative min-h-[580px] sm:min-h-[640px] flex items-center overflow-hidden">
-        {/* Background photo: Real library hero photo showing actual books and shelves */}
-        <div
-          className="absolute inset-0 bg-cover bg-center sm:bg-[center_center] scale-100 transition-transform duration-1000"
-          style={{ backgroundImage: `url('/photos/hero_bookshelf_wide.jpg')` }}
-          role="img"
-          aria-label="Book Nook illuminated office library shelves with books"
-        />
-
-        {/* Responsive dark forest green gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-forest-dark via-forest-dark/90 to-forest-dark/75 lg:to-forest/60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-forest-dark via-transparent to-black/30" />
+      <section className="relative min-h-[580px] sm:min-h-[640px] flex items-center z-20">
+        {/* Background photo & overlays clipped cleanly */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 bg-cover bg-center sm:bg-[center_center] scale-100 transition-transform duration-1000"
+            style={{ backgroundImage: `url('/photos/hero_bookshelf_wide.jpg')` }}
+            role="img"
+            aria-label="Book Nook illuminated office library shelves with books"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-forest-dark via-forest-dark/90 to-forest-dark/75 lg:to-forest/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-forest-dark via-transparent to-black/30" />
+        </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 w-full">
           <div className="max-w-2xl space-y-6 animate-fade-in">
@@ -208,52 +286,118 @@ export default function HomePage() {
                       id="visitor-select-trigger"
                       type="button"
                       onClick={() => setDropdownOpen(v => !v)}
+                      onKeyDown={handleKeyDown}
                       aria-expanded={dropdownOpen}
                       className="w-full h-11 px-3.5 rounded-lg border bg-background text-left flex items-center justify-between hover:border-forest/50 focus:outline-none focus:ring-2 focus:ring-forest text-sm transition-all"
                     >
-                      <span className={visitorName ? 'font-medium text-foreground' : 'text-muted-foreground'}>
-                        {visitorName ? `👋 ${visitorName}` : 'Select your name…'}
+                      <span className={visitorName ? 'font-medium text-foreground flex items-center gap-2' : 'text-muted-foreground'}>
+                        {visitorName ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                            <span>{visitorName}</span>
+                            {currentEmployee?.department && (
+                              <span className="text-xs text-muted-foreground font-normal">({currentEmployee.department})</span>
+                            )}
+                          </>
+                        ) : (
+                          'Select your name…'
+                        )}
                       </span>
                       <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? 'rotate-90' : ''}`} />
                     </button>
 
                     {/* Searchable Dropdown Menu */}
                     {dropdownOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-popover border rounded-xl shadow-xl p-2 max-h-60 overflow-hidden flex flex-col animate-fade-in">
+                      <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-popover border rounded-xl shadow-2xl p-2 max-h-80 sm:max-h-96 overflow-hidden flex flex-col animate-fade-in">
                         <div className="relative mb-2">
                           <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
-                            placeholder="Search employee or team…"
+                            placeholder="Search employee, department, code…"
                             value={empSearch}
                             onChange={e => setEmpSearch(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             className="w-full pl-8 pr-2 py-1.5 text-xs rounded-md border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-forest"
                             autoFocus
                           />
                         </div>
 
-                        <div className="overflow-y-auto flex-1 space-y-0.5 divide-y divide-border/30">
+                        <div ref={listRef} className="overflow-y-auto flex-1 space-y-0.5 divide-y divide-border/30">
+                          {/* 1. Loading Indicator */}
                           {empsLoading ? (
-                            <p className="text-xs text-muted-foreground p-3 text-center">Loading team members…</p>
+                            <div className="p-4 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-5 w-5 animate-spin text-forest" />
+                              <span>Loading employee directory from database…</span>
+                            </div>
+                          ) : empsError ? (
+                            /* 2. Helpful Error State with Retry */
+                            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs space-y-2">
+                              <div className="flex items-start gap-1.5 font-semibold">
+                                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                                <span>Unable to load employee list:</span>
+                              </div>
+                              <p className="text-[11px] text-rose-700">
+                                {empsError instanceof Error ? empsError.message : 'Database request failed'}
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => refetchEmployees()}
+                                className="h-7 text-xs bg-white text-rose-800 border-rose-300 hover:bg-rose-100"
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Retry Connection
+                              </Button>
+                            </div>
+                          ) : employees.length === 0 ? (
+                            /* 3. Empty State with Clear Guidance */
+                            <div className="p-4 text-center space-y-2">
+                              <Users className="h-7 w-7 text-muted-foreground/50 mx-auto" />
+                              <p className="text-xs font-semibold text-foreground">No employees found</p>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                The employee database is currently empty. Please add team members in the Admin Dashboard to enable book requests and personalized portals.
+                              </p>
+                              <Link
+                                to="/employees"
+                                onClick={() => setDropdownOpen(false)}
+                                className="inline-flex items-center text-xs font-semibold text-forest hover:underline pt-1"
+                              >
+                                Go to Employee Management &rarr;
+                              </Link>
+                            </div>
                           ) : filteredEmployees.length === 0 ? (
-                            <p className="text-xs text-muted-foreground p-3 text-center">No matching team member found.</p>
+                            /* 4. Filter empty state */
+                            <div className="p-4 text-center text-xs text-muted-foreground">
+                              No matching team member found for &ldquo;{empSearch}&rdquo;.
+                            </div>
                           ) : (
-                            filteredEmployees.map(emp => {
+                            /* 5. Dynamically loaded employee list */
+                            filteredEmployees.map((emp, idx) => {
                               const isSelected = emp.id === selectedEmpId
+                              const isHighlighted = idx === highlightedIndex
                               return (
                                 <button
                                   key={emp.id}
                                   type="button"
+                                  data-highlighted={isHighlighted ? "true" : "false"}
+                                  onMouseEnter={() => setHighlightedIndex(idx)}
                                   onClick={() => handleSelectEmployee(emp)}
                                   className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center justify-between transition-colors ${
-                                    isSelected ? 'bg-forest/10 font-semibold text-forest' : 'hover:bg-muted text-foreground'
+                                    isHighlighted
+                                      ? 'bg-forest/15 text-forest-dark font-medium'
+                                      : isSelected
+                                      ? 'bg-forest/10 font-semibold text-forest'
+                                      : 'hover:bg-muted text-foreground'
                                   }`}
                                 >
                                   <div>
-                                    <p className="font-medium">{emp.full_name}</p>
-                                    <p className="text-[11px] text-muted-foreground">{emp.department || 'General'}</p>
+                                    <p className="font-medium text-foreground">{emp.full_name}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {emp.department || 'General'} · <span className="font-mono text-[10px]">{emp.employee_code}</span>
+                                    </p>
                                   </div>
-                                  {isSelected && <Check className="h-4 w-4 text-forest" />}
+                                  {isSelected && <Check className="h-4 w-4 text-forest shrink-0" />}
                                 </button>
                               )
                             })
@@ -290,7 +434,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Library Statistics Strip ───────────────────────── */}
-      <section className="bg-sage/70 border-y border-sage-dark/30 py-6 sm:py-8 shadow-xs">
+      <section className="bg-sage/70 border-y border-sage-dark/30 py-6 sm:py-8 shadow-xs relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {/* Stat 1: Books Available */}
@@ -382,6 +526,42 @@ export default function HomePage() {
           </Link>
         </div>
 
+        {/* Active Employee Context Banner (keeps visitor visible across catalog) */}
+        {visitorName && (
+          <div className="mb-6 p-3.5 sm:p-4 rounded-xl bg-forest/5 border border-forest/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5 text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <div>
+                <span className="text-muted-foreground">Browsing as: </span>
+                <strong className="text-forest-dark font-semibold text-sm">{visitorName}</strong>
+                {currentEmployee?.department && (
+                  <span className="text-muted-foreground ml-1.5 font-medium">({currentEmployee.department})</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPortalOpen(true)}
+                className="h-8 text-xs bg-white text-forest border-forest/30 hover:bg-forest/5"
+              >
+                <BookMarked className="h-3.5 w-3.5 mr-1 text-gold" />
+                My Requests &amp; Loans
+              </Button>
+              <button
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                  setDropdownOpen(true)
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Category Filter Pills */}
         {categories.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
@@ -393,7 +573,7 @@ export default function HomePage() {
                   : 'bg-white hover:bg-sage text-foreground border border-border'
               }`}
             >
-              All Available ({availableBooks.length})
+              All Books ({allBooks.length})
             </button>
             {categories.map(cat => (
               <button
@@ -474,10 +654,27 @@ export default function HomePage() {
                   <span className="text-muted-foreground truncate max-w-[80px]">
                     {book.category || 'General'}
                   </span>
-                  <span className="inline-flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Available
-                  </span>
+                  {book.status === 'Borrowed' ? (
+                    <div className="flex flex-col items-end">
+                      <span className="inline-flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-[10px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        On Loan
+                      </span>
+                      {(() => {
+                        const waitCount = waitingListData.filter(r => r.book_id === book.id).length
+                        return waitCount > 0 ? (
+                          <span className="text-[10px] text-amber-900 font-semibold mt-0.5">
+                            Waiting: {waitCount} {waitCount === 1 ? 'person' : 'people'}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Available
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -713,14 +910,31 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Book Detail Dialog (view-only for visitors) */}
+      {/* Book Detail Dialog */}
       {detailBook && (
         <BookDetailDialog
           open={!!detailBook}
           onOpenChange={open => !open && setDetailBook(null)}
           book={detailBook}
+          visitorEmpId={selectedEmpId}
+          visitorName={visitorName}
+          onPromptSelectVisitor={() => {
+            setDetailBook(null)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            setDropdownOpen(true)
+          }}
         />
       )}
+
+      {/* Employee Portal Dialog */}
+      <EmployeePortalDialog
+        open={portalOpen}
+        onOpenChange={setPortalOpen}
+        employee={currentEmployee}
+        onExploreCatalogue={() => {
+          availableSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
     </div>
   )
 }
