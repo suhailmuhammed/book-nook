@@ -62,7 +62,7 @@ async function generateBorrowingHistory() {
   ws.columns = [
     { header: 'Book ID',      key: 'book_code',       width: 10 },
     { header: 'Title',        key: 'title',            width: 35 },
-    { header: 'Employee',     key: 'employee_name',    width: 22 },
+    { header: 'Reader',       key: 'employee_name',    width: 22 },
     { header: 'Department',   key: 'department',       width: 16 },
     { header: 'Issue Date',   key: 'issue_date',       width: 14 },
     { header: 'Due Date',     key: 'due_date',         width: 14 },
@@ -199,7 +199,7 @@ export default function ReportsPage() {
             <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <p className="font-medium mb-1">Excel Import Wizard</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Import books, employees, and borrowing history from your existing Excel workbook.
+              Import books, readers, and borrowing history from your existing Excel workbook.
             </p>
             <Button id="import-wizard-btn" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4" />

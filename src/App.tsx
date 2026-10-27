@@ -44,6 +44,7 @@ export default function App() {
                 <Route path="/books/*"     element={<BooksPage />} />
                 <Route path="/borrowing/*" element={<BorrowingPage />} />
                 <Route path="/employees/*" element={<EmployeesPage />} />
+                <Route path="/readers/*"   element={<EmployeesPage />} />
                 <Route path="/reviews/*"   element={<ReviewsPage />} />
                 <Route path="/reports/*"   element={<ReportsPage />} />
                 <Route path="/settings/*"  element={<SettingsPage />} />

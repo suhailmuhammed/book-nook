@@ -9,7 +9,7 @@ const navItems = [
   { to: '/dashboard',  label: 'Dashboard',   icon: LayoutDashboard },
   { to: '/books',      label: 'Book Catalog',icon: BookOpen        },
   { to: '/borrowing',  label: 'Borrowing',   icon: ArrowLeftRight  },
-  { to: '/employees',  label: 'Employees',   icon: Users           },
+  { to: '/employees',  label: 'Readers',     icon: Users           },
   { to: '/reviews',    label: 'Reviews',     icon: Star            },
   { to: '/reports',    label: 'Reports',     icon: BarChart3       },
   { to: '/settings',   label: 'Settings',    icon: Settings        },

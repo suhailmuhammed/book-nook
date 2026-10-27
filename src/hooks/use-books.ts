@@ -12,21 +12,34 @@ export function useBooks(options?: {
   category?: string
   condition?: string
   ownedBy?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
   page?: number
   pageSize?: number
   includeArchived?: boolean
 }) {
-  const { search, status, category, condition, ownedBy, page = 1, pageSize = 20, includeArchived = false } = options ?? {}
+  const {
+    search,
+    status,
+    category,
+    condition,
+    ownedBy,
+    sortBy = 'created_at',
+    sortOrder = 'desc',
+    page = 1,
+    pageSize = 20,
+    includeArchived = false,
+  } = options ?? {}
 
   return useQuery({
-    queryKey: [...BOOKS_QUERY_KEY, { search, status, category, condition, ownedBy, page, pageSize, includeArchived }],
+    queryKey: [...BOOKS_QUERY_KEY, { search, status, category, condition, ownedBy, sortBy, sortOrder, page, pageSize, includeArchived }],
     queryFn: async () => {
       let q = supabase.from('books').select('*', { count: 'exact' })
 
       if (!includeArchived) q = q.is('archived_at', null)
 
       if (search) {
-        q = q.or(`title.ilike.%${search}%,author.ilike.%${search}%,book_code.ilike.%${search}%,isbn.ilike.%${search}%,category.ilike.%${search}%`)
+        q = q.or(`title.ilike.%${search}%,author.ilike.%${search}%,book_code.ilike.%${search}%,isbn.ilike.%${search}%,category.ilike.%${search}%,owned_by.ilike.%${search}%`)
       }
       if (status && status !== 'all') q = q.eq('status', status)
       if (category && category !== 'all') q = q.eq('category', category)
@@ -34,7 +47,7 @@ export function useBooks(options?: {
       if (ownedBy && ownedBy !== 'all') q = q.eq('owned_by', ownedBy)
 
       const from = (page - 1) * pageSize
-      q = q.order('created_at', { ascending: false }).range(from, from + pageSize - 1)
+      q = q.order(sortBy, { ascending: sortOrder === 'asc' }).range(from, from + pageSize - 1)
 
       const { data, error, count } = await q
       if (error) throw error
@@ -162,6 +175,8 @@ export function useCreateBook() {
       qc.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
       qc.invalidateQueries({ queryKey: ['next-book-code'] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-owners'] })
+      qc.invalidateQueries({ queryKey: ['employee-book-counts'] })
       toast({ title: 'Book added', description: 'The book has been added to the catalog.', variant: 'success' as never })
     },
     onError: (err: Error) => {
@@ -198,6 +213,8 @@ export function useUpdateBook() {
       qc.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
       qc.invalidateQueries({ queryKey: [...BOOKS_QUERY_KEY, book.id] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-owners'] })
+      qc.invalidateQueries({ queryKey: ['employee-book-counts'] })
       toast({ title: 'Book updated', variant: 'success' as never })
     },
     onError: (err: Error) => {
@@ -229,6 +246,8 @@ export function useArchiveBook() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-owners'] })
+      qc.invalidateQueries({ queryKey: ['employee-book-counts'] })
       toast({ title: 'Book archived', variant: 'success' as never })
     },
     onError: (err: Error) => {
@@ -252,6 +271,25 @@ export function useBookCategories() {
       if (error) throw error
       const cats = [...new Set((data ?? []).map((r: any) => r.category).filter(Boolean))] as string[]
       return cats
+    },
+  })
+}
+
+// ─── Fetch distinct book owners ───────────────────────────────
+export function useBookOwners() {
+  return useQuery({
+    queryKey: ['book-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('books')
+        .select('owned_by')
+        .is('archived_at', null)
+        .not('owned_by', 'is', null)
+
+      if (error) throw error
+      const rawOwners = (data ?? []).map((r: any) => (r.owned_by ? String(r.owned_by).trim() : '')).filter(Boolean) as string[]
+      const owners = [...new Set(rawOwners)].sort((a: string, b: string) => a.localeCompare(b))
+      return owners
     },
   })
 }
@@ -307,6 +345,8 @@ export function useDeleteBook() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-owners'] })
+      qc.invalidateQueries({ queryKey: ['employee-book-counts'] })
       toast({ title: 'Book deleted', description: 'The book was removed from the catalog.', variant: 'success' as never })
     },
     onError: (err: Error) => {

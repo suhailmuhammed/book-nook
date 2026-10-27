@@ -31,14 +31,6 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'reset'>('login')
   const [resetSent, setResetSent] = useState(false)
 
-  const rawFrom = (location.state as any)?.from?.pathname
-  const redirectTarget = rawFrom && rawFrom !== '/' ? rawFrom : '/dashboard'
-
-  // Redirect immediately if already authenticated
-  if (user) {
-    return <Navigate to={redirectTarget} replace />
-  }
-
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: 'admin@booknook.local', password: 'password' },
@@ -48,6 +40,14 @@ export default function LoginPage() {
     resolver: zodResolver(resetSchema),
     defaultValues: { email: '' },
   })
+
+  const rawFrom = (location.state as any)?.from?.pathname
+  const redirectTarget = rawFrom && rawFrom !== '/' ? rawFrom : '/dashboard'
+
+  // Redirect immediately if already authenticated (called after all hooks to comply with React rules of hooks)
+  if (user) {
+    return <Navigate to={redirectTarget} replace />
+  }
 
   async function onLogin(data: LoginForm) {
     try {

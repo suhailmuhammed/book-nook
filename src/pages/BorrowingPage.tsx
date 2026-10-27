@@ -326,7 +326,7 @@ export default function BorrowingPage() {
             <div className="p-12 text-center rounded-2xl border border-dashed bg-card">
               <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
               <h3 className="font-serif font-semibold text-base text-foreground">No active waiting lists</h3>
-              <p className="text-xs text-muted-foreground mt-1">There are currently no employees queued for books.</p>
+              <p className="text-xs text-muted-foreground mt-1">There are currently no readers queued for books.</p>
             </div>
           ) : (
             Object.entries(waitingListsByBook).map(([bookId, group]) => (
@@ -342,7 +342,7 @@ export default function BorrowingPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
-                      {group.requests.length} {group.requests.length === 1 ? 'person waiting' : 'people waiting'}
+                      {group.requests.length} {group.requests.length === 1 ? 'reader waiting' : 'readers waiting'}
                     </span>
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function BorrowingPage() {
                     <thead>
                       <tr className="text-muted-foreground text-left border-b border-border/40">
                         <th className="py-2 pr-2 font-medium">Pos</th>
-                        <th className="py-2 px-2 font-medium">Employee</th>
+                        <th className="py-2 px-2 font-medium">Reader</th>
                         <th className="py-2 px-2 font-medium">Department</th>
                         <th className="py-2 px-2 font-medium">Request Date</th>
                         <th className="py-2 px-2 font-medium">Status</th>
@@ -473,7 +473,7 @@ export default function BorrowingPage() {
             <div className="relative flex-1 max-w-sm">
               <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by book, employee, department…"
+                placeholder="Search by book, reader, department…"
                 value={reqSearch}
                 onChange={e => setReqSearch(e.target.value)}
                 className="pl-8 h-9 text-xs"
@@ -498,7 +498,7 @@ export default function BorrowingPage() {
               <thead>
                 <tr className="border-b bg-muted/40 text-muted-foreground text-left">
                   <th className="py-3 px-4 font-medium">Book</th>
-                  <th className="py-3 px-4 font-medium">Employee</th>
+                  <th className="py-3 px-4 font-medium">Reader</th>
                   <th className="py-3 px-4 font-medium">Department</th>
                   <th className="py-3 px-4 font-medium">Queue Position</th>
                   <th className="py-3 px-4 font-medium">Request Date</th>

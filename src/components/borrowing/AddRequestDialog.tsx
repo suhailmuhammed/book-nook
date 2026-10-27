@@ -16,7 +16,7 @@ import { toast } from '@/hooks/use-toast'
 
 const schema = z.object({
   bookId:     z.string().min(1, 'Please select a book'),
-  employeeId: z.string().min(1, 'Please select an employee'),
+  employeeId: z.string().min(1, 'Please select a reader'),
   notes:      z.string().optional(),
 })
 
@@ -80,21 +80,21 @@ export function AddRequestDialog({ open, onOpenChange, defaultBookId }: AddReque
         <DialogHeader>
           <DialogTitle className="font-serif">Manual Book Request / Waitlist</DialogTitle>
           <DialogDescription className="text-xs">
-            Add a book request or queue entry on behalf of an employee.
+            Add a book request or queue entry on behalf of a reader.
           </DialogDescription>
         </DialogHeader>
 
         <form id="admin-add-request-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Employee */}
+          {/* Reader */}
           <div className="space-y-1.5">
-            <Label htmlFor="req-emp-select">Employee *</Label>
+            <Label htmlFor="req-emp-select">Reader *</Label>
             <Controller
               name="employeeId"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="req-emp-select" className="text-xs">
-                    <SelectValue placeholder="Select team member…" />
+                    <SelectValue placeholder="Select reader…" />
                   </SelectTrigger>
                   <SelectContent className="max-h-56">
                     {employees.map(emp => (
@@ -147,7 +147,7 @@ export function AddRequestDialog({ open, onOpenChange, defaultBookId }: AddReque
               Book Status: <strong>{selectedBook.status}</strong> —{' '}
               {selectedBook.status === 'Available'
                 ? 'This entry will create an active book request.'
-                : 'This book is currently loaned out. Employee will be appended to the FIFO waiting list.'}
+                : 'This book is currently loaned out. Reader will be appended to the FIFO waiting list.'}
             </div>
           )}
 

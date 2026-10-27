@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Plus, Search, Users, Edit, UserCheck, UserX, Trash2, AlertTriangle } from 'lucide-react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { Plus, Search, Users, Edit, UserCheck, UserX, Trash2, AlertTriangle, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState, LoadingRows, ErrorMessage } from '@/components/ui/states'
-import { useEmployees, useUpdateEmployee, useCreateEmployee, useDeleteEmployee, useGenerateEmployeeCode } from '@/hooks/use-employees'
+import {
+  useEmployees,
+  useUpdateEmployee,
+  useCreateEmployee,
+  useDeleteEmployee,
+  useGenerateEmployeeCode,
+  useEmployeeBookCounts,
+  getEmployeeBookCount,
+} from '@/hooks/use-employees'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,7 +25,7 @@ import type { Employee } from '@/lib/database.types'
 import { formatDate } from '@/lib/utils'
 
 const employeeSchema = z.object({
-  full_name:     z.string().min(1, 'Name is required'),
+  full_name:     z.string().min(1, 'Reader name is required'),
   employee_code: z.string().optional(),
   department:    z.string().optional(),
   email:         z.string().email('Invalid email').optional().or(z.literal('')),
@@ -41,61 +49,63 @@ function EmployeeDialog({
 
   const form = useForm<EmployeeForm>({
     resolver: zodResolver(employeeSchema),
-    defaultValues: employee ? {
-      full_name:     employee.full_name,
-      employee_code: employee.employee_code ?? '',
-      department:    employee.department ?? '',
-      email:         employee.email ?? '',
-      is_active:     employee.is_active,
-    } : {
-      full_name: '', employee_code: autoEmpCode ?? '', department: '', email: '', is_active: true,
+    defaultValues: {
+      full_name: '',
+      employee_code: '',
+      department: '',
+      email: '',
+      is_active: true,
     },
   })
 
+  // Only reset form once when dialog opens or target employee changes
   useEffect(() => {
     if (open) {
-      if (!isEdit) {
+      if (employee) {
+        form.reset({
+          full_name:     employee.full_name,
+          employee_code: employee.employee_code ?? '',
+          department:    employee.department ?? '',
+          email:         employee.email ?? '',
+          is_active:     employee.is_active,
+        })
+      } else {
+        form.reset({
+          full_name:     '',
+          employee_code: autoEmpCode ?? '',
+          department:    '',
+          email:         '',
+          is_active:     true,
+        })
         refetchEmpCode().then((res) => {
-          if (res.data && !form.getValues('employee_code')) {
+          if (res.data) {
             form.setValue('employee_code', res.data)
           }
         })
       }
-      form.reset(employee ? {
-        full_name: employee.full_name,
-        employee_code: employee.employee_code ?? '',
-        department: employee.department ?? '',
-        email: employee.email ?? '',
-        is_active: employee.is_active,
-      } : {
-        full_name: '',
-        employee_code: autoEmpCode ?? '',
-        department: '',
-        email: '',
-        is_active: true,
-      })
     }
-  }, [open, employee, isEdit, autoEmpCode, form, refetchEmpCode])
-
-  useEffect(() => {
-    if (open && !isEdit && autoEmpCode && !form.getValues('employee_code')) {
-      form.setValue('employee_code', autoEmpCode)
-    }
-  }, [open, isEdit, autoEmpCode, form])
+  }, [open, employee])
 
   async function onSubmit(data: EmployeeForm) {
-    const payload = {
-      full_name:     data.full_name,
-      employee_code: data.employee_code?.trim() || null,
-      department:    data.department || null,
-      email:         data.email || null,
-      is_active:     data.is_active,
+    try {
+      const payload = {
+        full_name:     data.full_name.trim(),
+        employee_code: data.employee_code?.trim() || null,
+        department:    data.department?.trim() || null,
+        email:         data.email?.trim() || null,
+        is_active:     data.is_active,
+      }
+
+      if (isEdit) {
+        await update.mutateAsync({ id: employee.id, ...payload })
+      } else {
+        await create.mutateAsync(payload)
+      }
+
+      onOpenChange(false)
+    } catch (err: unknown) {
+      // Error is surfaced via mutation onError toast
     }
-
-    if (isEdit) await update.mutateAsync({ id: employee.id, ...payload })
-    else        await create.mutateAsync(payload)
-
-    onOpenChange(false)
   }
 
   const isPending = create.isPending || update.isPending
@@ -104,16 +114,16 @@ function EmployeeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Employee' : 'Add Employee'}</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit Reader' : 'Add Reader'}</DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Update employee details.' : 'Add a new employee to the directory.'}
+            {isEdit ? 'Update reader details in the library directory.' : 'Add a new reader to the library directory.'}
           </DialogDescription>
         </DialogHeader>
 
         <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="emp-name-input">Full Name *</Label>
-            <Input id="emp-name-input" {...form.register('full_name')} placeholder="Full name" />
+            <Label htmlFor="emp-name-input">Reader Name *</Label>
+            <Input id="emp-name-input" {...form.register('full_name')} placeholder="Full name of reader" />
             {form.formState.errors.full_name && (
               <p className="text-xs text-destructive">{form.formState.errors.full_name.message}</p>
             )}
@@ -122,8 +132,8 @@ function EmployeeDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="emp-code-input" className="flex items-center justify-between">
-                <span>Employee Code</span>
-                {!isEdit && <span className="text-[10px] text-muted-foreground font-normal">Auto-generated</span>}
+                <span>Reader Code</span>
+                {!isEdit && <span className="text-[10px] text-muted-foreground font-normal">Auto-assigned</span>}
               </Label>
               <Input
                 id="emp-code-input"
@@ -138,13 +148,13 @@ function EmployeeDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="emp-dept-input">Department</Label>
-              <Input id="emp-dept-input" {...form.register('department')} placeholder="Engineering" />
+              <Input id="emp-dept-input" {...form.register('department')} placeholder="Engineering, HR, etc." />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="emp-email-input">Email</Label>
-            <Input id="emp-email-input" type="email" {...form.register('email')} placeholder="user@company.com" />
+            <Input id="emp-email-input" type="email" {...form.register('email')} placeholder="reader@company.com" />
             {form.formState.errors.email && (
               <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
             )}
@@ -157,7 +167,7 @@ function EmployeeDialog({
               className="rounded border-input"
               {...form.register('is_active')}
             />
-            <Label htmlFor="emp-active-checkbox">Active employee</Label>
+            <Label htmlFor="emp-active-checkbox">Active library reader</Label>
           </div>
         </form>
 
@@ -173,13 +183,19 @@ function EmployeeDialog({
               }}
             >
               <Trash2 className="h-4 w-4" />
-              Remove User
+              Remove Reader
             </Button>
           ) : <div />}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button id="employee-form-submit-btn" form="employee-form" type="submit" loading={isPending}>
-              {isEdit ? 'Save Changes' : 'Add Employee'}
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancel</Button>
+            <Button
+              id="employee-form-submit-btn"
+              form="employee-form"
+              type="submit"
+              loading={isPending}
+              disabled={isPending}
+            >
+              {isEdit ? 'Save Changes' : 'Add Reader'}
             </Button>
           </div>
         </DialogFooter>
@@ -189,6 +205,7 @@ function EmployeeDialog({
 }
 
 export default function EmployeesPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [page, setPage]     = useState(1)
@@ -207,6 +224,7 @@ export default function EmployeesPage() {
   }, [searchParams, setSearchParams])
 
   const { data, isLoading, error } = useEmployees({ search, page, pageSize: 20 })
+  const { data: bookCounts } = useEmployeeBookCounts()
   const employees = data?.employees ?? []
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / 20))
@@ -216,11 +234,11 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold">Employees</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{total} employee record{total !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl font-bold">Readers</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{total} reader record{total !== 1 ? 's' : ''}</p>
         </div>
         <Button id="add-employee-btn" onClick={() => setAddOpen(true)} size="sm">
-          <Plus className="h-4 w-4" />Add Employee
+          <Plus className="h-4 w-4" />Add Reader
         </Button>
       </div>
 
@@ -229,7 +247,7 @@ export default function EmployeesPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           id="employee-search-input"
-          placeholder="Search by name, code, or email…"
+          placeholder="Search by reader name, code, or email…"
           className="pl-9"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
@@ -239,81 +257,100 @@ export default function EmployeesPage() {
       {/* Mobile Employee Cards */}
       <div className="md:hidden space-y-3">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Loading employees...</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">Loading readers...</div>
         ) : employees.length === 0 ? (
           <div className="rounded-xl border bg-card p-6">
             <EmptyState
               icon={Users}
-              title="No employees found"
-              description="Add employees to track borrowing history."
-              action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1.5" />Add Employee</Button>}
+              title="No readers found"
+              description="Add readers to track library borrowing history."
+              action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1.5" />Add Reader</Button>}
             />
           </div>
         ) : (
-          employees.map(emp => (
-            <div key={emp.id} className="bg-card border rounded-xl p-4 shadow-sm space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
-                    {emp.full_name.charAt(0).toUpperCase()}
+          employees.map(emp => {
+            const ownedCount = getEmployeeBookCount(emp, bookCounts)
+            return (
+              <div key={emp.id} className="bg-card border rounded-xl p-4 shadow-sm space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
+                      {emp.full_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm text-foreground">{emp.full_name}</h3>
+                      <p className="text-xs font-mono text-muted-foreground">{emp.employee_code || 'No Code'}</p>
+                    </div>
+                  </div>
+                  <Badge variant={emp.is_active ? 'success' : 'neutral'}>
+                    {emp.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-border/50 text-muted-foreground">
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 block">Department</span>
+                    <span className="font-medium text-foreground">{emp.department || '—'}</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm text-foreground">{emp.full_name}</h3>
-                    <p className="text-xs font-mono text-muted-foreground">{emp.employee_code || 'No Code'}</p>
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 block">Books Owned</span>
+                    {ownedCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/books?ownedBy=${encodeURIComponent(emp.full_name)}`)}
+                        className="font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 mt-0.5"
+                      >
+                        <BookOpen className="h-3 w-3" />
+                        {ownedCount} {ownedCount === 1 ? 'book' : 'books'}
+                      </button>
+                    ) : (
+                      <span className="font-medium text-muted-foreground block mt-0.5">0 books</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 block">Email</span>
+                    <span className="font-medium text-foreground truncate block">{emp.email || '—'}</span>
                   </div>
                 </div>
-                <Badge variant={emp.is_active ? 'success' : 'neutral'}>
-                  {emp.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50 text-muted-foreground">
-                <div>
-                  <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 block">Department</span>
-                  <span className="font-medium text-foreground">{emp.department || '—'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-semibold text-muted-foreground/70 block">Email</span>
-                  <span className="font-medium text-foreground truncate block">{emp.email || '—'}</span>
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => setEditEmp(emp)}
+                  >
+                    <Edit className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(emp)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Remove
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => setEditEmp(emp)}
-                >
-                  <Edit className="h-3.5 w-3.5 mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => setDeleteTarget(emp)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Remove
-                </Button>
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
       {/* Desktop Table */}
       <div className="hidden md:block rounded-xl border bg-card overflow-hidden">
         {error ? (
-          <div className="p-6"><ErrorMessage message="Failed to load employees." /></div>
+          <div className="p-6"><ErrorMessage message="Failed to load readers." /></div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Code</th>
+                <th>Reader</th>
+                <th>Reader Code</th>
                 <th>Department</th>
+                <th>Books Owned</th>
                 <th>Email</th>
                 <th>Status</th>
                 <th>Added</th>
@@ -322,61 +359,81 @@ export default function EmployeesPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <LoadingRows columns={7} rows={6} />
+                <LoadingRows columns={8} rows={6} />
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-0">
+                  <td colSpan={8} className="py-0">
                     <EmptyState
                       icon={Users}
-                      title="No employees found"
-                      description="Add employees to track borrowing history."
-                      action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" />Add Employee</Button>}
+                      title="No readers found"
+                      description="Add readers to track library borrowing history."
+                      action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1.5" />Add Reader</Button>}
                     />
                   </td>
                 </tr>
               ) : (
-                employees.map(emp => (
-                  <tr key={emp.id}>
-                    <td>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
-                          {emp.full_name.charAt(0).toUpperCase()}
+                employees.map(emp => {
+                  const ownedCount = getEmployeeBookCount(emp, bookCounts)
+                  return (
+                    <tr key={emp.id}>
+                      <td>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
+                            {emp.full_name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-sm">{emp.full_name}</span>
                         </div>
-                        <span className="font-medium text-sm">{emp.full_name}</span>
-                      </div>
-                    </td>
-                    <td className="font-mono text-xs">{emp.employee_code ?? '—'}</td>
-                    <td className="text-sm">{emp.department ?? '—'}</td>
-                    <td className="text-sm text-muted-foreground">{emp.email ?? '—'}</td>
-                    <td>
-                      <Badge variant={emp.is_active ? 'success' : 'neutral'}>
-                        {emp.is_active ? <><UserCheck className="h-3 w-3 mr-1" />Active</> : <><UserX className="h-3 w-3 mr-1" />Inactive</>}
-                      </Badge>
-                    </td>
-                    <td className="text-sm text-muted-foreground">{formatDate(emp.created_at)}</td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          onClick={() => setEditEmp(emp)}
-                          aria-label="Edit employee"
-                          title="Edit employee"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          id={`delete-user-${emp.id}-btn`}
-                          className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeleteTarget(emp)}
-                          aria-label="Remove user"
-                          title="Remove user"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="font-mono text-xs">{emp.employee_code ?? '—'}</td>
+                      <td className="text-sm">{emp.department ?? '—'}</td>
+                      <td>
+                        {ownedCount > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/books?ownedBy=${encodeURIComponent(emp.full_name)}`)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer group"
+                            title={`View ${ownedCount} book${ownedCount !== 1 ? 's' : ''} owned by ${emp.full_name} in Book Catalog`}
+                          >
+                            <BookOpen className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <span>{ownedCount} {ownedCount === 1 ? 'book' : 'books'}</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60 px-2.5 py-1">
+                            0 books
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-sm text-muted-foreground">{emp.email ?? '—'}</td>
+                      <td>
+                        <Badge variant={emp.is_active ? 'success' : 'neutral'}>
+                          {emp.is_active ? <><UserCheck className="h-3 w-3 mr-1" />Active</> : <><UserX className="h-3 w-3 mr-1" />Inactive</>}
+                        </Badge>
+                      </td>
+                      <td className="text-sm text-muted-foreground">{formatDate(emp.created_at)}</td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            className="p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditEmp(emp)}
+                            aria-label="Edit reader"
+                            title="Edit reader"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            id={`delete-user-${emp.id}-btn`}
+                            className="p-1.5 rounded hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleteTarget(emp)}
+                            aria-label="Remove reader"
+                            title="Remove reader"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -411,11 +468,11 @@ export default function EmployeesPage() {
           <DialogHeader>
             <div className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              <DialogTitle>Remove User</DialogTitle>
+              <DialogTitle>Remove Reader</DialogTitle>
             </div>
             <DialogDescription className="pt-2">
               Are you sure you want to remove <strong className="text-foreground">{deleteTarget?.full_name}</strong>{deleteTarget?.employee_code ? ` (${deleteTarget.employee_code})` : ''}?
-              This user will no longer be listed in the library directory.
+              This reader will no longer be listed in the library directory.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
@@ -438,7 +495,7 @@ export default function EmployeesPage() {
               }}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
-              Remove User
+              Remove Reader
             </Button>
           </DialogFooter>
         </DialogContent>

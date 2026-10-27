@@ -459,18 +459,18 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
               />
             </div>
 
-            {/* Owned By with Employee Suggestions */}
+            {/* Owned By with Reader Suggestions */}
             <div className="space-y-1.5 relative" ref={ownedByRef}>
               <div className="flex items-center justify-between">
                 <Label htmlFor="book-owned-input">Owned By</Label>
-                <span className="text-[11px] text-muted-foreground">Select team member or custom</span>
+                <span className="text-[11px] text-muted-foreground">Select reader or custom</span>
               </div>
               <div className="relative">
                 <Input
                   id="book-owned-input"
                   {...form.register('owned_by')}
                   onFocus={() => setShowOwnedBySuggestions(true)}
-                  placeholder="Select employee or enter custom owner"
+                  placeholder="Select reader or enter custom owner"
                   autoComplete="off"
                   className="pr-8"
                 />
@@ -479,7 +479,7 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
                   tabIndex={-1}
                   onClick={() => setShowOwnedBySuggestions(v => !v)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
-                  title="Show employee suggestions"
+                  title="Show reader suggestions"
                 >
                   <ChevronDown className={`h-4 w-4 transition-transform ${showOwnedBySuggestions ? 'rotate-180' : ''}`} />
                 </button>
@@ -505,7 +505,7 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
 
                   <div className="border-t my-1 opacity-50" />
                   <p className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Office Team Members ({employees.length})
+                    Office Readers ({employees.length})
                   </p>
 
                   {employees.filter(e => {
@@ -515,7 +515,7 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
                       (e.employee_code && e.employee_code.toLowerCase().includes(q))
                   }).length === 0 ? (
                     <p className="px-2.5 py-2 text-muted-foreground text-center">
-                      No matching team members. Custom owner will be saved.
+                      No matching readers. Custom owner will be saved.
                     </p>
                   ) : (
                     employees.filter(e => {

@@ -59,6 +59,12 @@ export function useGenerateEmployeeCode() {
   return useQuery({
     queryKey: ['next-employee-code'],
     queryFn: async () => {
+      // First try peeking so we don't advance the sequence counter simply by opening the form
+      const { data: peekData, error: peekError } = await supabase.rpc('peek_next_employee_code')
+      if (!peekError && peekData) {
+        return peekData as string
+      }
+
       const { data, error } = await supabase.rpc('generate_employee_code')
       if (error) {
         console.warn('generate_employee_code error, fallback to EMP008', error)
@@ -66,7 +72,7 @@ export function useGenerateEmployeeCode() {
       }
       return data as string
     },
-    staleTime: 0,
+    staleTime: 30_000,
   })
 }
 
@@ -104,10 +110,10 @@ export function useCreateEmployee() {
       qc.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       qc.invalidateQueries({ queryKey: ['next-employee-code'] })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast({ title: 'Employee added', variant: 'success' as never })
+      toast({ title: 'Reader added', description: 'Added successfully to the Readers list.', variant: 'success' as never })
     },
     onError: (err: Error) => {
-      toast({ title: 'Failed to add employee', description: err.message, variant: 'destructive' })
+      toast({ title: 'Failed to add reader', description: err.message, variant: 'destructive' })
     },
   })
 }
@@ -137,10 +143,10 @@ export function useUpdateEmployee() {
     onSuccess: (_emp, vars) => {
       qc.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       qc.invalidateQueries({ queryKey: [...EMPLOYEES_QUERY_KEY, vars.id] })
-      toast({ title: 'Employee updated', variant: 'success' as never })
+      toast({ title: 'Reader updated', variant: 'success' as never })
     },
     onError: (err: Error) => {
-      toast({ title: 'Failed to update employee', description: err.message, variant: 'destructive' })
+      toast({ title: 'Failed to update reader', description: err.message, variant: 'destructive' })
     },
   })
 }
@@ -159,7 +165,7 @@ export function useDeleteEmployee() {
 
       if (checkError) throw checkError
       if (activeBorrowings && activeBorrowings.length > 0) {
-        throw new Error('Cannot remove user with active borrowed books. Please return all borrowed books first.')
+        throw new Error('Cannot remove reader with active borrowed books. Please return all borrowed books first.')
       }
 
       // Check for any historical loans
@@ -194,10 +200,10 @@ export function useDeleteEmployee() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: EMPLOYEES_QUERY_KEY })
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      toast({ title: 'User removed', description: 'The user has been successfully removed.', variant: 'success' as never })
+      toast({ title: 'Reader removed', description: 'The reader has been successfully removed.', variant: 'success' as never })
     },
     onError: (err: Error) => {
-      toast({ title: 'Failed to remove user', description: err.message, variant: 'destructive' })
+      toast({ title: 'Failed to remove reader', description: err.message, variant: 'destructive' })
     },
   })
 }
@@ -215,6 +221,46 @@ export function useEmployeeDepartments() {
       return [...new Set((data ?? []).map((r: any) => r.department).filter(Boolean))] as string[]
     },
   })
+}
+
+// ─── Fetch counts of books owned by employees ─────────────────
+export function useEmployeeBookCounts() {
+  return useQuery({
+    queryKey: ['employee-book-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('books')
+        .select('owned_by')
+        .is('archived_at', null)
+
+      if (error) throw error
+
+      const counts: Record<string, number> = {}
+      ;(data ?? []).forEach((b: any) => {
+        if (b.owned_by) {
+          const key = String(b.owned_by).trim().toLowerCase()
+          counts[key] = (counts[key] || 0) + 1
+        }
+      })
+      return counts
+    },
+    staleTime: 30_000,
+  })
+}
+
+export function getEmployeeBookCount(
+  emp: Employee,
+  counts: Record<string, number> | undefined
+): number {
+  if (!counts) return 0
+  const nameKey = emp.full_name.trim().toLowerCase()
+  const codeKey = (emp.employee_code || '').trim().toLowerCase()
+
+  let count = counts[nameKey] || 0
+  if (codeKey && codeKey !== nameKey && counts[codeKey]) {
+    count += counts[codeKey]
+  }
+  return count
 }
 
 

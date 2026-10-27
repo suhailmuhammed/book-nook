@@ -22,7 +22,7 @@ import { today } from '@/lib/utils'
 
 const reviewSchema = z.object({
   book_id:     z.string().min(1, 'Book is required'),
-  employee_id: z.string().min(1, 'Employee is required'),
+  employee_id: z.string().min(1, 'Reader is required'),
   rating:      z.number().int().min(1).max(5),
   comment:     z.string().optional(),
   review_date: z.string().min(1),
@@ -87,7 +87,7 @@ function AddReviewDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Review</DialogTitle>
-          <DialogDescription>Record a book review from an employee.</DialogDescription>
+          <DialogDescription>Record a book review from a reader.</DialogDescription>
         </DialogHeader>
 
         <form id="review-form" onSubmit={form.handleSubmit(d => add.mutate(d))} className="space-y-4">
@@ -110,13 +110,13 @@ function AddReviewDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
           </div>
 
           <div className="space-y-1.5">
-            <Label>Employee *</Label>
+            <Label>Reader *</Label>
             <Controller
               name="employee_id"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="review-employee-select"><SelectValue placeholder="Select employee…" /></SelectTrigger>
+                  <SelectTrigger id="review-employee-select"><SelectValue placeholder="Select reader…" /></SelectTrigger>
                   <SelectContent>
                     {(empsData?.employees ?? []).map(e => (
                       <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
@@ -144,7 +144,7 @@ function AddReviewDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button id="review-submit-btn" form="review-form" type="submit" loading={add.isPending}>Save Review</Button>
+          <Button id="review-submit-btn" form="review-form" type="submit" loading={add.isPending} disabled={add.isPending}>Save Review</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -199,7 +199,7 @@ export default function ReviewsPage() {
               <tr>
                 <th className="w-12">Cover</th>
                 <th>Book</th>
-                <th>Employee</th>
+                <th>Reader</th>
                 <th>Rating</th>
                 <th>Comment</th>
                 <th>Date</th>
@@ -212,7 +212,7 @@ export default function ReviewsPage() {
               ) : reviews.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-0">
-                    <EmptyState icon={Star} title="No reviews yet" description="Add reviews to track employee feedback on books." action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" />Add Review</Button>} />
+                    <EmptyState icon={Star} title="No reviews yet" description="Add reviews to track reader feedback on books." action={<Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" />Add Review</Button>} />
                   </td>
                 </tr>
               ) : (

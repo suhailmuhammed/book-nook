@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Filter, Download, Upload, BookOpen, MoreHorizontal,
-  Archive, Edit, Eye, ArrowLeftRight, Trash2, AlertTriangle, X
+  Archive, Edit, Eye, ArrowLeftRight, Trash2, AlertTriangle, X,
+  User, Building2, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StatusBadge, ConditionBadge } from '@/components/ui/badge'
 import { BookCover } from '@/components/ui/book-cover'
 import { EmptyState, LoadingRows, ErrorMessage } from '@/components/ui/states'
-import { useBooks, useBookCategories, useArchiveBook, useDeleteBook } from '@/hooks/use-books'
+import { useBooks, useBookCategories, useBookOwners, useArchiveBook, useDeleteBook } from '@/hooks/use-books'
 import { formatDate } from '@/lib/utils'
 import { BookFormDialog } from '@/components/books/BookFormDialog'
 import { BookDetailDialog } from '@/components/books/BookDetailDialog'
@@ -32,6 +33,9 @@ export default function BooksPage() {
   const [status, setStatus]                 = useState(searchParams.get('status') ?? 'all')
   const [category, setCategory]             = useState(searchParams.get('category') ?? 'all')
   const [condition, setCondition]           = useState(searchParams.get('condition') ?? 'all')
+  const [ownedBy, setOwnedBy]               = useState(searchParams.get('ownedBy') ?? 'all')
+  const [sortBy, setSortBy]                 = useState(searchParams.get('sortBy') ?? 'created_at')
+  const [sortOrder, setSortOrder]           = useState<'asc' | 'desc'>((searchParams.get('sortOrder') as any) ?? 'desc')
   const [page, setPage]                     = useState(1)
   const [addOpen, setAddOpen]               = useState(searchParams.get('action') === 'add')
   const [importOpen, setImportOpen]         = useState(false)
@@ -41,8 +45,28 @@ export default function BooksPage() {
   const [issueBookId, setIssueBookId]       = useState<string | undefined>()
   const [menuBookId, setMenuBookId]         = useState<string | null>(null)
 
-  const { data, isLoading, error } = useBooks({ search, status, category, condition, page, pageSize: 20 })
+  const { data, isLoading, error } = useBooks({
+    search,
+    status,
+    category,
+    condition,
+    ownedBy,
+    sortBy,
+    sortOrder,
+    page,
+    pageSize: 20,
+  })
   const { data: categories = [] } = useBookCategories()
+  const { data: owners = [] }     = useBookOwners()
+
+  // Sync searchParams with state
+  useEffect(() => {
+    const pOwned = searchParams.get('ownedBy') ?? 'all'
+    if (pOwned !== ownedBy) {
+      setOwnedBy(pOwned)
+      setPage(1)
+    }
+  }, [searchParams])
 
   // Clear action param after opening
   useEffect(() => {
@@ -58,11 +82,23 @@ export default function BooksPage() {
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / 20))
 
-  const isFiltered = !!search || status !== 'all' || category !== 'all' || condition !== 'all'
+  const isFiltered = !!search || status !== 'all' || category !== 'all' || condition !== 'all' || ownedBy !== 'all' || sortBy !== 'created_at' || sortOrder !== 'desc'
 
   function handleSearch(val: string) {
     setSearch(val)
     setPage(1)
+  }
+
+  function handleOwnedByChange(val: string) {
+    setOwnedBy(val)
+    setPage(1)
+    const nextParams = new URLSearchParams(searchParams)
+    if (val === 'all') {
+      nextParams.delete('ownedBy')
+    } else {
+      nextParams.set('ownedBy', val)
+    }
+    setSearchParams(nextParams, { replace: true })
   }
 
   function handleClearFilters() {
@@ -70,6 +106,20 @@ export default function BooksPage() {
     setStatus('all')
     setCategory('all')
     setCondition('all')
+    setOwnedBy('all')
+    setSortBy('created_at')
+    setSortOrder('desc')
+    setPage(1)
+    setSearchParams({}, { replace: true })
+  }
+
+  function handleToggleSort(field: string) {
+    if (sortBy === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(field)
+      setSortOrder('asc')
+    }
     setPage(1)
   }
 
@@ -213,15 +263,56 @@ export default function BooksPage() {
           </SelectContent>
         </Select>
 
+        {/* Owned By Filter */}
+        <Select value={ownedBy} onValueChange={handleOwnedByChange}>
+          <SelectTrigger id="owned-by-filter" className="w-[150px] h-9 text-xs">
+            <User className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+            <SelectValue placeholder="Owned By" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">All Owners</SelectItem>
+            {owners.map(o => (
+              <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Sort By Dropdown */}
+        <Select
+          value={`${sortBy}-${sortOrder}`}
+          onValueChange={v => {
+            const [col, dir] = v.split('-')
+            setSortBy(col)
+            setSortOrder(dir as 'asc' | 'desc')
+            setPage(1)
+          }}
+        >
+          <SelectTrigger id="book-sort-trigger" className="w-[160px] h-9 text-xs">
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created_at-desc" className="text-xs">Newest Added</SelectItem>
+            <SelectItem value="created_at-asc" className="text-xs">Oldest Added</SelectItem>
+            <SelectItem value="owned_by-asc" className="text-xs">Owned By (A–Z)</SelectItem>
+            <SelectItem value="owned_by-desc" className="text-xs">Owned By (Z–A)</SelectItem>
+            <SelectItem value="title-asc" className="text-xs">Title (A–Z)</SelectItem>
+            <SelectItem value="title-desc" className="text-xs">Title (Z–A)</SelectItem>
+            <SelectItem value="book_code-asc" className="text-xs">Book ID (Asc)</SelectItem>
+          </SelectContent>
+        </Select>
+
         {isFiltered && (
           <Button
+            id="reset-filters-btn"
             variant="ghost"
             size="sm"
             onClick={handleClearFilters}
             className="text-xs text-muted-foreground hover:text-foreground h-9 px-2.5"
+            title="Reset all filters"
           >
-            <X className="h-3.5 w-3.5 mr-1" />
-            Clear
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            Reset Filters
           </Button>
         )}
       </div>
@@ -232,16 +323,16 @@ export default function BooksPage() {
           <div className="p-6"><ErrorMessage message="Failed to load books." /></div>
         ) : isLoading ? (
           <div className="p-6">
-            <LoadingRows columns={6} rows={6} />
+            <LoadingRows columns={7} rows={6} />
           </div>
         ) : books.length === 0 ? (
           <div className="p-8">
             <EmptyState
               icon={BookOpen}
               title="No books found"
-              description={search ? 'Try adjusting your search or filters.' : 'Add your first book to get started.'}
+              description={search || isFiltered ? 'Try adjusting your search or filters.' : 'Add your first book to get started.'}
               action={
-                !search && (
+                !search && !isFiltered && (
                   <Button onClick={() => setAddOpen(true)} size="sm" className="bg-forest hover:bg-forest-dark text-white">
                     <Plus className="h-4 w-4 mr-1" />Add Book
                   </Button>
@@ -257,12 +348,38 @@ export default function BooksPage() {
                 <thead>
                   <tr>
                     <th className="w-12">Cover</th>
-                    <th>Book ID</th>
-                    <th>Title / Author</th>
+                    <th className="cursor-pointer hover:text-foreground transition-colors select-none" onClick={() => handleToggleSort('book_code')}>
+                      <div className="flex items-center gap-1">
+                        <span>Book ID</span>
+                        {sortBy === 'book_code' ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />) : null}
+                      </div>
+                    </th>
+                    <th className="cursor-pointer hover:text-foreground transition-colors select-none" onClick={() => handleToggleSort('title')}>
+                      <div className="flex items-center gap-1">
+                        <span>Title / Author</span>
+                        {sortBy === 'title' ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />) : null}
+                      </div>
+                    </th>
                     <th>Category</th>
+                    <th className="cursor-pointer hover:text-foreground transition-colors select-none min-w-[140px]" onClick={() => handleToggleSort('owned_by')}>
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>Owned By</span>
+                        {sortBy === 'owned_by' ? (
+                          sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
+                        )}
+                      </div>
+                    </th>
                     <th>Status</th>
                     <th>Condition</th>
-                    <th>Date Added</th>
+                    <th className="cursor-pointer hover:text-foreground transition-colors select-none" onClick={() => handleToggleSort('date_added')}>
+                      <div className="flex items-center gap-1">
+                        <span>Date Added</span>
+                        {sortBy === 'date_added' ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />) : null}
+                      </div>
+                    </th>
                     <th className="w-16 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -285,6 +402,28 @@ export default function BooksPage() {
                             {book.category}
                           </span>
                         ) : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td>
+                        {book.owned_by && book.owned_by !== 'Office Collection' ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setOwnedBy(book.owned_by!)
+                              setPage(1)
+                            }}
+                            className="inline-flex items-center gap-1 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 px-2 py-0.5 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors cursor-pointer text-left"
+                            title={`Filter by owner: ${book.owned_by}`}
+                          >
+                            <User className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span className="truncate max-w-[130px]">{book.owned_by}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 border border-border/50 px-2 py-0.5 rounded-full">
+                            <Building2 className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                            <span>Office Collection</span>
+                          </span>
+                        )}
                       </td>
                       <td><StatusBadge status={book.status} /></td>
                       <td><ConditionBadge condition={book.condition} /></td>
@@ -331,6 +470,22 @@ export default function BooksPage() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {book.author || 'Unknown Author'}
                     </p>
+
+                    {/* Owned By section on mobile */}
+                    <div className="flex items-center gap-1.5 text-xs mt-1 text-muted-foreground">
+                      <span className="text-[11px] font-medium text-muted-foreground/80">Owned by:</span>
+                      {book.owned_by && book.owned_by !== 'Office Collection' ? (
+                        <span className="inline-flex items-center gap-1 font-semibold text-amber-800 dark:text-amber-300">
+                          <User className="h-2.5 w-2.5" />
+                          {book.owned_by}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Building2 className="h-2.5 w-2.5" />
+                          Office Collection
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {book.category && (

@@ -62,8 +62,8 @@ export function EmployeePortalDialog({
       await cancelMutation.mutateAsync({
         requestId: req.id,
         bookId: req.book_id,
-        reason: 'Cancelled by employee from Employee Portal',
-        cancelledBy: employee?.full_name || 'Employee',
+        reason: 'Cancelled by reader from Reader Portal',
+        cancelledBy: employee?.full_name || 'Reader',
       })
       toast({
         title: 'Request Cancelled',
@@ -90,11 +90,11 @@ export function EmployeePortalDialog({
             </div>
             <div>
               <DialogTitle className="text-xl font-serif">
-                {employee.full_name}’s Library Portal
+                {employee.full_name}’s Reader Portal
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
                 <span>{employee.department || 'General'}</span>
-                {employee.employee_code && <span>· ID: {employee.employee_code}</span>}
+                {employee.employee_code && <span>· Reader Code: {employee.employee_code}</span>}
               </DialogDescription>
             </div>
           </div>
@@ -257,7 +257,7 @@ export function EmployeePortalDialog({
             <div>
               <h3 className="font-serif font-bold text-sm text-muted-foreground mb-2 flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                Borrowing History ({pastLoans.length})
+                Reader Borrowing History ({pastLoans.length})
               </h3>
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                 {pastLoans.map(loan => (

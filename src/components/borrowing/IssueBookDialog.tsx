@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase'
 
 const schema = z.object({
   bookId:      z.string().min(1, 'Please select a book'),
-  employeeId:  z.string().min(1, 'Please select an employee'),
+  employeeId:  z.string().min(1, 'Please select a reader'),
   issueDate:   z.string().min(1, 'Issue date is required'),
   dueDate:     z.string().min(1, 'Due date is required'),
   remarks:     z.string().optional(),
@@ -92,7 +92,7 @@ export function IssueBookDialog({ open, onOpenChange, defaultBookId }: IssueBook
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Issue Book</DialogTitle>
-          <DialogDescription>Record a new book loan for an employee.</DialogDescription>
+          <DialogDescription>Record a new book loan for a reader.</DialogDescription>
         </DialogHeader>
 
         <form id="issue-book-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -124,14 +124,14 @@ export function IssueBookDialog({ open, onOpenChange, defaultBookId }: IssueBook
 
           {/* Employee */}
           <div className="space-y-1.5">
-            <Label htmlFor="issue-employee-select">Employee *</Label>
+            <Label htmlFor="issue-employee-select">Reader *</Label>
             <Controller
               name="employeeId"
               control={form.control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="issue-employee-select">
-                    <SelectValue placeholder="Select an employee…" />
+                    <SelectValue placeholder="Select a reader…" />
                   </SelectTrigger>
                   <SelectContent>
                     {activeEmployees.map(e => (
@@ -193,6 +193,7 @@ export function IssueBookDialog({ open, onOpenChange, defaultBookId }: IssueBook
             form="issue-book-form"
             type="submit"
             loading={issueBook.isPending}
+            disabled={issueBook.isPending}
           >
             Issue Book
           </Button>

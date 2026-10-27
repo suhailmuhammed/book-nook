@@ -123,7 +123,7 @@ export default function DashboardPage() {
         <KpiCard label="Book Requests" value={waitingCount} icon={BookMarked}
           color={waitingCount > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-500"}
           description="In waiting list" onClick={() => navigate('/borrowing?tab=waiting-lists')} />
-        <KpiCard label="Employees" value={s.totalEmployees} icon={Users}
+        <KpiCard label="Readers" value={s.totalEmployees} icon={Users}
           color="bg-teal-100 text-teal-600" description="Directory" onClick={() => navigate('/employees')} />
         <KpiCard label="Reserved" value={s.reserved} icon={BookMarked}
           color="bg-purple-100 text-purple-600" />
@@ -352,7 +352,7 @@ export default function DashboardPage() {
               { label: 'Issue Book', icon: ArrowLeftRight, action: () => setShowIssueDialog(true), id: 'qa-issue-book' },
               { label: 'Record Return', icon: RotateCcw, action: () => navigate('/borrowing?status=active'), id: 'qa-return-book' },
               { label: 'Manage Requests', icon: BookMarked, action: () => navigate('/borrowing?tab=waiting-lists'), id: 'qa-manage-requests' },
-              { label: 'Manage Employees', icon: Users, action: () => navigate('/employees'), id: 'qa-manage-employees' },
+              { label: 'Manage Readers', icon: Users, action: () => navigate('/employees'), id: 'qa-manage-readers' },
             ].map(item => (
               <button
                 key={item.id}

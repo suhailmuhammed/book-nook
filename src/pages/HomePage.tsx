@@ -201,7 +201,7 @@ export default function HomePage() {
                   <button
                     onClick={handleClearVisitor}
                     className="text-white/60 hover:text-white underline text-[11px] ml-1"
-                    title="Change employee"
+                    title="Change reader"
                   >
                     Change
                   </button>
@@ -313,7 +313,7 @@ export default function HomePage() {
                           <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
-                            placeholder="Search employee, department, code…"
+                            placeholder="Search reader, department, code…"
                             value={empSearch}
                             onChange={e => setEmpSearch(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -327,14 +327,14 @@ export default function HomePage() {
                           {empsLoading ? (
                             <div className="p-4 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
                               <Loader2 className="h-5 w-5 animate-spin text-forest" />
-                              <span>Loading employee directory from database…</span>
+                              <span>Loading reader directory from database…</span>
                             </div>
                           ) : empsError ? (
                             /* 2. Helpful Error State with Retry */
                             <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs space-y-2">
                               <div className="flex items-start gap-1.5 font-semibold">
                                 <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
-                                <span>Unable to load employee list:</span>
+                                <span>Unable to load reader list:</span>
                               </div>
                               <p className="text-[11px] text-rose-700">
                                 {empsError instanceof Error ? empsError.message : 'Database request failed'}
@@ -354,16 +354,16 @@ export default function HomePage() {
                             /* 3. Empty State with Clear Guidance */
                             <div className="p-4 text-center space-y-2">
                               <Users className="h-7 w-7 text-muted-foreground/50 mx-auto" />
-                              <p className="text-xs font-semibold text-foreground">No employees found</p>
+                              <p className="text-xs font-semibold text-foreground">No readers found</p>
                               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                The employee database is currently empty. Please add team members in the Admin Dashboard to enable book requests and personalized portals.
+                                The reader directory is currently empty. Please add readers in the Admin Dashboard to enable book requests and personalized portals.
                               </p>
                               <Link
                                 to="/employees"
                                 onClick={() => setDropdownOpen(false)}
                                 className="inline-flex items-center text-xs font-semibold text-forest hover:underline pt-1"
                               >
-                                Go to Employee Management &rarr;
+                                Go to Reader Management &rarr;
                               </Link>
                             </div>
                           ) : filteredEmployees.length === 0 ? (
@@ -742,7 +742,7 @@ export default function HomePage() {
                 BELONG
               </h3>
               <p className="text-sm text-white/80 leading-relaxed">
-                A library built by and for our team. Every employee can borrow freely, suggest new titles, and cultivate a shared culture of reading.
+                A library built by and for our team. Every reader can borrow freely, suggest new titles, and cultivate a shared culture of reading.
               </p>
             </div>
           </div>

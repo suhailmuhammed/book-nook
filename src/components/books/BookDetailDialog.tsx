@@ -77,7 +77,7 @@ export function BookDetailDialog({
     if (!visitorEmpId) {
       toast({
         title: 'Please Select Your Name',
-        description: 'Please select your name from the employee dropdown to submit a request.',
+        description: 'Please select your name from the reader dropdown to submit a request.',
         variant: 'destructive',
       })
       if (onPromptSelectVisitor) {
@@ -132,7 +132,7 @@ export function BookDetailDialog({
                 {activeCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-900 border border-amber-200/80 px-2.5 py-0.5 rounded-full">
                     <Users className="h-3 w-3 text-amber-700" />
-                    Waiting list: {activeCount} {activeCount === 1 ? 'person' : 'people'}
+                    Waiting list: {activeCount} {activeCount === 1 ? 'reader' : 'readers'}
                   </span>
                 )}
               </div>
@@ -246,7 +246,7 @@ export function BookDetailDialog({
               <div>
                 <p className="font-semibold text-sm flex items-center gap-1.5">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  Currently borrowed by: {(activeLoan.employee as any)?.full_name || 'Team Member'}
+                  Currently borrowed by: {(activeLoan.employee as any)?.full_name || 'Reader'}
                 </p>
                 {(activeLoan.employee as any)?.department && (
                   <p className="text-xs text-muted-foreground mt-0.5 ml-5">
@@ -336,7 +336,7 @@ export function BookDetailDialog({
                 <thead>
                   <tr className="border-b border-border/60 text-muted-foreground text-left">
                     <th className="py-1.5 pr-2 font-medium">Position</th>
-                    <th className="py-1.5 px-2 font-medium">Employee</th>
+                    <th className="py-1.5 px-2 font-medium">Reader</th>
                     <th className="py-1.5 px-2 font-medium">Department</th>
                     <th className="py-1.5 px-2 font-medium">Request Date</th>
                     <th className="py-1.5 pl-2 font-medium">Status</th>
@@ -346,10 +346,10 @@ export function BookDetailDialog({
                   {waitingList.map((req, idx) => (
                     <tr key={req.id} className={req.employee_id === visitorEmpId ? 'bg-forest/10 font-medium' : ''}>
                       <td className="py-2 pr-2 font-semibold text-forest">
-                        #{idx + 1}
+                         #{idx + 1}
                       </td>
                       <td className="py-2 px-2">
-                        {(req.employee as any)?.full_name || 'Team Member'}
+                        {(req.employee as any)?.full_name || 'Reader'}
                         {req.employee_id === visitorEmpId && (
                           <span className="ml-1 text-[10px] text-forest font-bold">(You)</span>
                         )}

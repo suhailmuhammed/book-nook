@@ -149,9 +149,9 @@ export function ImportWizardDialog({
       const buffer = await wb.xlsx.writeBuffer()
       saveAs(new Blob([buffer]), 'book_nook_books_template.xlsx')
     } else {
-      const ws = wb.addWorksheet('Employees_Template')
+      const ws = wb.addWorksheet('Readers_Template')
       ws.columns = [
-        { header: 'Employee Code *', key: 'employee_code', width: 20 },
+        { header: 'Reader Code *', key: 'employee_code', width: 20 },
         { header: 'Full Name *', key: 'full_name', width: 28 },
         { header: 'Department *', key: 'department', width: 20 },
         { header: 'Email *', key: 'email', width: 30 },
@@ -162,14 +162,14 @@ export function ImportWizardDialog({
       ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
 
       ws.addRow({
-        employee_code: 'EMP101',
+        employee_code: 'RDR101',
         full_name: 'Anita Roy',
         department: 'Engineering',
         email: 'anita.roy@example.com',
         is_active: 'TRUE',
       })
       ws.addRow({
-        employee_code: 'EMP102',
+        employee_code: 'RDR102',
         full_name: 'Vikram Joshi',
         department: 'Product',
         email: 'vikram.j@example.com',
@@ -177,7 +177,7 @@ export function ImportWizardDialog({
       })
 
       const buffer = await wb.xlsx.writeBuffer()
-      saveAs(new Blob([buffer]), 'book_nook_employees_template.xlsx')
+      saveAs(new Blob([buffer]), 'book_nook_readers_template.xlsx')
     }
   }
 
@@ -446,7 +446,7 @@ export function ImportWizardDialog({
         qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
         setImportedCount(employeesToInsert.length)
         setStep('success')
-        toast({ title: 'Import successful', description: `Imported ${employeesToInsert.length} employees.` })
+        toast({ title: 'Import successful', description: `Imported ${employeesToInsert.length} readers.` })
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Import failed'
@@ -472,7 +472,7 @@ export function ImportWizardDialog({
             <div>
               <DialogTitle className="text-xl">Import Wizard</DialogTitle>
               <DialogDescription>
-                Import your existing library catalog or employee roster from Excel (.xlsx) or CSV.
+                Import your existing library catalog or reader directory from Excel (.xlsx) or CSV.
               </DialogDescription>
             </div>
           </div>
@@ -503,7 +503,7 @@ export function ImportWizardDialog({
                   onClick={() => setImportType('employees')}
                 >
                   <Users className="h-3.5 w-3.5" />
-                  Employees Directory
+                  Readers Directory
                 </button>
               </div>
             </div>
@@ -523,7 +523,7 @@ export function ImportWizardDialog({
                 onClick={() => downloadTemplate(importType)}
               >
                 <Download className="h-4 w-4" />
-                Download {importType === 'books' ? 'Books' : 'Employees'} Template
+                Download {importType === 'books' ? 'Books' : 'Readers'} Template
               </Button>
             </div>
 
@@ -618,7 +618,7 @@ export function ImportWizardDialog({
                   <thead className="bg-muted sticky top-0 border-b">
                     <tr>
                       <th className="p-2.5 font-semibold">Status</th>
-                      <th className="p-2.5 font-semibold">Code</th>
+                      <th className="p-2.5 font-semibold">Reader Code</th>
                       <th className="p-2.5 font-semibold">Full Name</th>
                       <th className="p-2.5 font-semibold">Department</th>
                       <th className="p-2.5 font-semibold">Email</th>
@@ -659,7 +659,7 @@ export function ImportWizardDialog({
             <div>
               <h3 className="text-xl font-bold">Import Completed!</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Successfully added <span className="font-semibold text-foreground">{importedCount}</span> {importType} to your database.
+                Successfully added <span className="font-semibold text-foreground">{importedCount}</span> {importType === 'books' ? 'books' : 'readers'} to your database.
               </p>
             </div>
           </div>

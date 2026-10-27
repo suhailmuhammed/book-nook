@@ -70,7 +70,7 @@ export function ReturnBookDialog({ open, onOpenChange, loan }: ReturnBookDialogP
             <p className="text-sm font-semibold truncate">{loan.book?.title}</p>
             <p className="text-xs text-muted-foreground">{loan.book?.book_code}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Borrowed by {loan.employee?.full_name} · Due {formatDate(loan.due_date)}
+              Reader: {loan.employee?.full_name} · Due {formatDate(loan.due_date)}
             </p>
           </div>
         </div>
@@ -142,6 +142,7 @@ export function ReturnBookDialog({ open, onOpenChange, loan }: ReturnBookDialogP
             form="return-book-form"
             type="submit"
             loading={returnBook.isPending}
+            disabled={returnBook.isPending}
           >
             Confirm Return
           </Button>
