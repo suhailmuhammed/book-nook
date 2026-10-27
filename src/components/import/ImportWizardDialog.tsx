@@ -106,7 +106,7 @@ export function ImportWizardDialog({
         { header: 'Shelf Number', key: 'shelf_number', width: 15 },
         { header: 'Status', key: 'status', width: 14 },
         { header: 'Condition', key: 'condition', width: 14 },
-        { header: 'Department / Owned By', key: 'owned_by', width: 22 },
+        { header: 'Owned By', key: 'owned_by', width: 22 },
         { header: 'Page Count', key: 'page_count', width: 14 },
       ]
 
@@ -127,7 +127,7 @@ export function ImportWizardDialog({
         shelf_number: 'TECH-02',
         status: 'Available',
         condition: 'Good',
-        owned_by: 'Engineering',
+        owned_by: 'Aisha Rao',
         page_count: 448,
       })
       ws.addRow({
@@ -142,7 +142,7 @@ export function ImportWizardDialog({
         shelf_number: 'MGMT-01',
         status: 'Available',
         condition: 'Excellent',
-        owned_by: 'Design',
+        owned_by: 'Office Collection',
         page_count: 288,
       })
 
@@ -281,7 +281,7 @@ export function ImportWizardDialog({
         const pubKey = Object.keys(r).find(k => k.includes('publisher')) || 'publisher'
         const yearKey = Object.keys(r).find(k => k.includes('year')) || 'published_year'
         const shelfKey = Object.keys(r).find(k => k.includes('shelf')) || 'shelf_number'
-        const ownedKey = Object.keys(r).find(k => k.includes('owned') || k.includes('dept')) || 'owned_by'
+        const ownedKey = Object.keys(r).find(k => k.includes('owned') || k.includes('owner') || k.includes('dept')) || 'owned_by'
         const statusKey = Object.keys(r).find(k => k.includes('status')) || 'status'
         const condKey = Object.keys(r).find(k => k.includes('condition')) || 'condition'
 
@@ -387,7 +387,7 @@ export function ImportWizardDialog({
             shelf_number: b.shelf_number || null,
             status: b.status || 'Available',
             condition: b.condition || 'Good',
-            owned_by: b.owned_by || 'General',
+            owned_by: b.owned_by || 'Office Collection',
             date_added: new Date().toISOString().split('T')[0],
             metadata_source: 'import',
           })
@@ -404,6 +404,9 @@ export function ImportWizardDialog({
         })
 
         qc.invalidateQueries({ queryKey: BOOKS_QUERY_KEY })
+        qc.invalidateQueries({ queryKey: ['book-owners'] })
+        qc.invalidateQueries({ queryKey: ['book-categories'] })
+        qc.invalidateQueries({ queryKey: ['employee-book-counts'] })
         qc.invalidateQueries({ queryKey: ['next-book-code'] })
         qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
         setImportedCount(booksToInsert.length)
