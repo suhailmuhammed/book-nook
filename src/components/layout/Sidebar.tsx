@@ -3,6 +3,7 @@ import {
   LayoutDashboard, BookOpen, ArrowLeftRight, Users,
   Star, BarChart3, Settings, BookMarked, Compass,
 } from 'lucide-react'
+import { BookNookLogo } from '@/components/brand/BookNookLogo'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -21,18 +22,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <aside className="sidebar h-full w-64 flex flex-col">
       {/* Logo / Branding */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'hsl(228 40% 32%)' }}>
-        <div className="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center flex-shrink-0">
-          <BookMarked className="h-5 w-5 text-teal-400" />
-        </div>
-        <div>
-          <h1 className="font-serif font-bold text-base leading-none" style={{ color: 'hsl(220 60% 92%)' }}>
-            Book Nook
-          </h1>
-          <p className="text-[10px] mt-0.5" style={{ color: 'hsl(228 30% 55%)' }}>
-            Office Library
-          </p>
-        </div>
+      <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'hsl(228 40% 32%)' }}>
+        <BookNookLogo variant="horizontal" theme="dark" size="sm" showSubtitle={true} />
       </div>
 
       {/* Navigation */}

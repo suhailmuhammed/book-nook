@@ -1,8 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#1e3a5f"/>
-  <path d="M8 24V10a2 2 0 012-2h4v16H8z" fill="#4db6ac"/>
-  <path d="M14 24V8h8a2 2 0 012 2v14H14z" fill="white" opacity="0.9"/>
-  <rect x="16" y="11" width="5" height="1.5" rx="0.75" fill="#1e3a5f" opacity="0.4"/>
-  <rect x="16" y="14" width="5" height="1.5" rx="0.75" fill="#1e3a5f" opacity="0.4"/>
-  <rect x="16" y="17" width="3" height="1.5" rx="0.75" fill="#1e3a5f" opacity="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Rounded Forest Green Background -->
+  <rect width="64" height="64" rx="14" fill="#102B22"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.6"/>
+
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCE592" />
+      <stop offset="50%" stop-color="#D4AF37" />
+      <stop offset="100%" stop-color="#996515" />
+    </linearGradient>
+  </defs>
+
+  <!-- Top / Bottom Bars -->
+  <rect x="8" y="11" width="48" height="3" rx="0.5" fill="url(#gold)"/>
+  <rect x="8" y="50" width="48" height="3" rx="0.5" fill="url(#gold)"/>
+
+  <!-- "B" - Spine and horizontal gold ribbed pages -->
+  <path d="M 14 18 H 22 V 46 H 14 Z" fill="url(#gold)"/>
+  <path d="M 21 18 H 32 C 37 18 40 21 40 26 C 40 31 37 33 32 33 H 21 Z" fill="none" stroke="url(#gold)" stroke-width="3"/>
+  <path d="M 21 33 H 34 C 39 33 42 36 42 41 C 42 46 39 46 34 46 H 21 Z" fill="none" stroke="url(#gold)" stroke-width="3"/>
+
+  <!-- Horizontal Page lines on B -->
+  <line x1="17" y1="22" x2="31" y2="22" stroke="url(#gold)" stroke-width="1.4"/>
+  <line x1="17" y1="26" x2="33" y2="26" stroke="url(#gold)" stroke-width="1.4"/>
+  <line x1="17" y1="30" x2="31" y2="30" stroke="url(#gold)" stroke-width="1.4"/>
+  <line x1="17" y1="37" x2="34" y2="37" stroke="url(#gold)" stroke-width="1.4"/>
+  <line x1="17" y1="41" x2="34" y2="41" stroke="url(#gold)" stroke-width="1.4"/>
+
+  <!-- Bookmark Ribbon on B -->
+  <path d="M 27 18 V 25 L 29.5 22.5 L 32 25 V 18 Z" fill="#FFF1B0"/>
+
+  <!-- "N" - Serif pillars & gold diagonal -->
+  <path d="M 43 18 H 48 V 46 H 43 Z" fill="url(#gold)"/>
+  <path d="M 49 18 H 54 V 46 H 49 Z" fill="url(#gold)"/>
+  <path d="M 44 19 L 53 45 H 50 L 41 19 Z" fill="#FFF5C8"/>
 </svg>

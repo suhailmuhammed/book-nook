@@ -1,0 +1,309 @@
+/* ─── 3D Book Opening Experience Styles ─────────────────────── */
+
+.book-perspective-container {
+  perspective: 2200px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+
+/* The Main Spread Container (holds both pages, the spine, and rotating cover) */
+.book-spread-assembly {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 2.2s cubic-bezier(0.25, 1, 0.45, 1);
+  will-change: transform;
+}
+
+/* Hardcover base under pages (stretches 4px beyond cream pages) */
+.hardcover-base-left {
+  position: absolute;
+  inset: -4px 0 -4px -4px;
+  background: #0E261E;
+  border: 1px solid #C5A059;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -10px 14px 30px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+
+.hardcover-base-right {
+  position: absolute;
+  inset: -4px -4px -4px 0;
+  background: #0E261E;
+  border: 1px solid #C5A059;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 10px 14px 30px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+
+/* Left Half (Left Page & Underlay) */
+.book-left-half {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Right Half (Right Page & Underlay) */
+.book-right-half {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+/* Center Spine Gutter (between left and right pages) */
+.book-spine-gutter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 20px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+      rgba(14, 38, 30, 0.7) 0%,
+      rgba(6, 18, 14, 0.95) 50%,
+      rgba(14, 38, 30, 0.7) 100%);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+  z-index: 15;
+}
+
+/* Gold Bookmark Ribbon trailing down the spine */
+.book-spine-ribbon {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: calc(100% + 28px);
+  background: linear-gradient(180deg, #FFF1B0 0%, #D4AF37 35%, #AA771C 85%, #7A530C 100%);
+  box-shadow: 2px 5px 10px rgba(0, 0, 0, 0.35);
+  z-index: 25;
+  pointer-events: none;
+}
+
+.book-spine-ribbon::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  background: inherit;
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+}
+
+/* Cream Page Surfaces */
+.book-page-surface {
+  position: absolute;
+  inset: 0;
+  background: #FAF6EE;
+  border: 1px solid #E6DCC8;
+  box-shadow: inset 0 0 20px rgba(197, 160, 89, 0.08);
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* Inner spine shadow on each page */
+.page-gutter-shadow-left {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.16), transparent);
+  pointer-events: none;
+}
+
+.page-gutter-shadow-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 36px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.16), transparent);
+  pointer-events: none;
+}
+
+/* ─── The Rotating Front Cover ───────────────────────────────── */
+/* Anchored at the center spine (left: 50%), rotates 180deg to the left */
+.book-cover-hinge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 2.2s cubic-bezier(0.25, 1, 0.45, 1);
+  will-change: transform;
+  z-index: 30;
+}
+
+.book-cover-hinge.open {
+  transform: rotateY(-180deg);
+}
+
+/* Front Face: Forest Green Hardcover with Gold Monogram & Title */
+.cover-front-face {
+  position: absolute;
+  inset: -4px -4px -4px 0;
+  background: #102B22;
+  border-radius: 0 8px 8px 0;
+  border-right: 2px solid #D4AF37;
+  border-top: 1px solid #D4AF37;
+  border-bottom: 1px solid #D4AF37;
+  box-shadow: 10px 16px 35px rgba(0, 0, 0, 0.5);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* Inside Face: Left Page that flips open completely flat */
+.cover-inside-face {
+  position: absolute;
+  inset: 0;
+  background: #FAF6EE;
+  border: 1px solid #E6DCC8;
+  border-radius: 8px 0 0 8px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg);
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Closed Spine (Left 3D Edge of the closed book) */
+.book-closed-spine {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  bottom: -4px;
+  width: 24px;
+  transform-origin: left center;
+  transform: rotateY(-90deg) translateX(-24px);
+  background: linear-gradient(90deg, #091C15 0%, #17382B 50%, #091C15 100%);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
+  z-index: 3;
+  transition: opacity 1.2s ease-out;
+}
+
+/* Stacked 3D Page Edges (Right and Bottom) */
+.page-edge-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -18px;
+  width: 18px;
+  transform-origin: left center;
+  transform: rotateY(90deg);
+  background: repeating-linear-gradient(90deg,
+      #F3ECDC 0px,
+      #F3ECDC 1px,
+      #E4D9C0 2px,
+      #F3ECDC 3px);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.22);
+}
+
+.page-edge-left {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -18px;
+  width: 18px;
+  transform-origin: right center;
+  transform: rotateY(-90deg);
+  background: repeating-linear-gradient(90deg,
+      #F3ECDC 0px,
+      #F3ECDC 1px,
+      #E4D9C0 2px,
+      #F3ECDC 3px);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.22);
+}
+
+.page-edge-bottom-left {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 18px;
+  transform-origin: top center;
+  transform: rotateX(-90deg);
+  background: repeating-linear-gradient(0deg,
+      #F3ECDC 0px,
+      #F3ECDC 1px,
+      #E4D9C0 2px,
+      #F3ECDC 3px);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.22);
+}
+
+.page-edge-bottom-right {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 18px;
+  transform-origin: top center;
+  transform: rotateX(-90deg);
+  background: repeating-linear-gradient(0deg,
+      #F3ECDC 0px,
+      #F3ECDC 1px,
+      #E4D9C0 2px,
+      #F3ECDC 3px);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.22);
+}
+
+/* ─── Soft Golden Radiance Beam ─────────────────────────────── */
+.book-golden-radiance {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 480px;
+  height: 480px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle,
+      rgba(255, 230, 140, 0.8) 0%,
+      rgba(212, 175, 55, 0.45) 35%,
+      rgba(212, 175, 55, 0.12) 60%,
+      transparent 75%);
+  filter: blur(24px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.8s ease-out, transform 2.4s ease-out;
+  z-index: 12;
+}
+
+.book-golden-radiance.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+/* Light ray shimmer animation */
+@keyframes goldSheen {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.gold-foil-sheen {
+  background: linear-gradient(110deg,
+      #D4AF37 20%,
+      #FFF8DC 40%,
+      #D4AF37 60%,
+      #AA771C 80%);
+  background-size: 200% 100%;
+  animation: goldSheen 4s infinite linear;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

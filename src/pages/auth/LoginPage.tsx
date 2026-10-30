@@ -3,7 +3,8 @@ import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BookMarked, Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { BookNookLogo } from '@/components/brand/BookNookLogo'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -79,11 +80,8 @@ export default function LoginPage() {
         className="hidden lg:flex lg:w-[420px] flex-col justify-between p-10 text-white"
         style={{ background: 'linear-gradient(135deg, hsl(228 56% 22%) 0%, hsl(228 56% 14%) 60%, hsl(174 65% 22%) 100%)' }}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-            <BookMarked className="h-6 w-6 text-teal-300" />
-          </div>
-          <span className="font-serif font-bold text-xl">Book Nook</span>
+        <div className="flex items-center">
+          <BookNookLogo variant="horizontal" theme="dark" size="md" />
         </div>
 
         <div>
@@ -115,11 +113,8 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <BookMarked className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-serif font-bold text-xl text-foreground">Book Nook</span>
+          <div className="flex items-center mb-8 lg:hidden">
+            <BookNookLogo variant="horizontal" size="md" />
           </div>
 
           {mode === 'login' ? (

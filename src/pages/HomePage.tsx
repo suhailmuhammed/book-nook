@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { BookCover } from '@/components/ui/book-cover'
 import { BookDetailDialog } from '@/components/books/BookDetailDialog'
 import { EmployeePortalDialog } from '@/components/portal/EmployeePortalDialog'
+import { BookOpeningIntro } from '@/components/intro/BookOpeningIntro'
+import { BookNookLogo } from '@/components/brand/BookNookLogo'
 import { useBooks } from '@/hooks/use-books'
 import { useEmployees } from '@/hooks/use-employees'
 import { usePublicLibraryStats } from '@/hooks/use-public-stats'
@@ -50,6 +52,14 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [detailBook, setDetailBook] = useState<Book | null>(null)
   const [portalOpen, setPortalOpen] = useState(false)
+  const [showIntro, setShowIntro] = useState(() => {
+    // Check if user forced intro via ?intro=true in URL, or first visit in this session
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('intro') === 'true') return true
+    const isExplicitlyDisabled = localStorage.getItem('booknook_intro_disabled') === 'true'
+    const alreadyViewed = sessionStorage.getItem('booknook_intro_viewed') === 'true'
+    return !isExplicitlyDisabled && !alreadyViewed
+  })
 
   const availableSectionRef = useRef<HTMLElement>(null)
 
@@ -156,29 +166,41 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-warmwhite text-foreground flex flex-col font-sans">
+      {/* ─── Animated Book Opening Experience Overlay ──────── */}
+      {showIntro && (
+        <BookOpeningIntro
+          onComplete={() => setShowIntro(false)}
+          forceShow={showIntro}
+        />
+      )}
+
       {/* ─── Header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-forest-dark/95 backdrop-blur-md text-white border-b border-white/10 shadow-sm transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          {/* Logo & Title */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gold/15 border border-gold/30 flex items-center justify-center text-gold group-hover:scale-105 transition-transform">
-              <BookMarked className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-xl sm:text-2xl tracking-tight text-white">
-                  Book Nook
-                </span>
-                <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-gold" />
-              </div>
-              <p className="text-[10px] sm:text-[11px] font-semibold tracking-widest text-gold uppercase">
-                YOUR OFFICE LIBRARY
-              </p>
-            </div>
+          {/* Official Book Nook Logo & Wordmark */}
+          <Link to="/" className="flex items-center group hover:opacity-95 transition-opacity">
+            <BookNookLogo
+              variant="horizontal"
+              theme="dark"
+              size="md"
+              showSubtitle={true}
+              className="py-1"
+            />
           </Link>
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Replay Intro Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowIntro(true)}
+              className="hidden lg:inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white hover:bg-white/10 border border-white/15 rounded-lg h-9"
+              title="Experience Book Nook Logo & 3D Book Opening Intro"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-gold" />
+              <span>Experience Intro</span>
+            </Button>
             {visitorName && (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
@@ -838,18 +860,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 pb-8 border-b border-white/10">
             {/* Branding */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gold/15 border border-gold/30 flex items-center justify-center text-gold">
-                  <BookMarked className="h-4 w-4" />
-                </div>
-                <div>
-                  <span className="font-serif font-bold text-lg text-white">Book Nook</span>
-                  <p className="text-[10px] font-semibold tracking-wider text-gold uppercase">
-                    YOUR OFFICE LIBRARY
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-white/70 leading-relaxed max-w-sm">
+              <BookNookLogo variant="horizontal" theme="dark" size="sm" showSubtitle={true} />
+              <p className="text-xs text-white/70 leading-relaxed max-w-sm pt-1">
                 Curated physical books for continuous learning, creativity, and connection across our company.
               </p>
             </div>

@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react'
+import { BrandedLoader } from '@/components/brand/BrandedLoader'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -38,12 +39,8 @@ export function LoadingRows({ columns = 5, rows = 5 }: { columns?: number; rows?
   )
 }
 
-export function PageLoader() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-    </div>
-  )
+export function PageLoader({ message = 'Loading library catalog…' }: { message?: string }) {
+  return <BrandedLoader message={message} size="md" />
 }
 
 export function ErrorMessage({ message }: { message: string }) {
