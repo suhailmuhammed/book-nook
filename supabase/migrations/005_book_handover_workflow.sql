@@ -120,7 +120,86 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 3. Seed Aadu Jeevitham if not exists
+-- 3. Update return_book function to support reserving returned book for next waiting reader
+CREATE OR REPLACE FUNCTION return_book(
+  p_borrowing_id       UUID,
+  p_return_date        DATE,
+  p_return_remarks     TEXT,
+  p_return_condition    TEXT,
+  p_actor_user_id      UUID,
+  p_next_request_ready BOOLEAN DEFAULT FALSE
+)
+RETURNS VOID AS $$
+DECLARE
+  v_book_id     UUID;
+  v_issue_date  DATE;
+  v_next_req_id UUID;
+  v_next_emp_id UUID;
+  v_next_pos    INTEGER;
+BEGIN
+  -- Lock borrowing row
+  SELECT book_id, issue_date INTO v_book_id, v_issue_date
+  FROM borrowings WHERE id = p_borrowing_id AND return_date IS NULL
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Active loan not found for this borrowing ID';
+  END IF;
+
+  IF p_return_date < v_issue_date THEN
+    RAISE EXCEPTION 'Return date cannot be before issue date';
+  END IF;
+
+  -- Close loan
+  UPDATE borrowings
+  SET return_date = p_return_date,
+      return_remarks = p_return_remarks,
+      return_condition = p_return_condition
+  WHERE id = p_borrowing_id;
+
+  -- If next request should be marked Ready for Pickup
+  IF p_next_request_ready THEN
+    -- Find first waiting request in queue
+    SELECT id, employee_id, queue_position INTO v_next_req_id, v_next_emp_id, v_next_pos
+    FROM book_requests
+    WHERE book_id = v_book_id AND status = 'Waiting'
+    ORDER BY queue_position ASC
+    LIMIT 1;
+
+    IF v_next_req_id IS NOT NULL THEN
+      UPDATE book_requests
+      SET status = 'Ready for Pickup',
+          notified_at = NOW(),
+          updated_at = NOW()
+      WHERE id = v_next_req_id;
+
+      -- Set book status to Reserved for this reader
+      UPDATE books SET status = 'Reserved', condition = COALESCE(p_return_condition, condition) WHERE id = v_book_id;
+
+      INSERT INTO queue_audit_logs (book_id, request_id, employee_id, action, prev_position, new_position, reason, performed_by)
+      VALUES (v_book_id, v_next_req_id, v_next_emp_id, 'READY_FOR_PICKUP', v_next_pos, v_next_pos, 'Marked ready for pickup upon return of prior loan', 'Librarian');
+    ELSE
+      -- No waiting request found, mark available
+      UPDATE books SET status = 'Available', condition = COALESCE(p_return_condition, condition) WHERE id = v_book_id;
+    END IF;
+  ELSE
+    -- Mark book Available
+    UPDATE books SET status = 'Available', condition = COALESCE(p_return_condition, condition) WHERE id = v_book_id;
+  END IF;
+
+  -- Audit log
+  INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, details)
+  VALUES (
+    p_actor_user_id,
+    'BOOK_RETURNED',
+    'borrowings',
+    p_borrowing_id::TEXT,
+    jsonb_build_object('book_id', v_book_id, 'return_date', p_return_date, 'condition', p_return_condition, 'next_ready', p_next_request_ready)
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Seed Aadu Jeevitham if not exists
 INSERT INTO books (id, book_code, title, author, category, isbn, publisher, published_year, language, page_count, status, condition, owned_by, date_added, metadata_source, is_demo)
 VALUES (
   '22222222-0002-0002-0002-000000000016',
@@ -141,4 +220,3 @@ VALUES (
   TRUE
 )
 ON CONFLICT (id) DO NOTHING;
-
