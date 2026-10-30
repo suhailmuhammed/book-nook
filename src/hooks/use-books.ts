@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Book, BookInsert, BookUpdate } from '@/lib/database.types'
 import { toast } from '@/hooks/use-toast'
+import { searchGoogleBooks } from '@/lib/utils'
 
 export const BOOKS_QUERY_KEY = ['books'] as const
 
@@ -153,9 +154,57 @@ export function useCreateBook() {
         book_code = code as string
       }
 
+      let cover_image_url = data.cover_image_url || null
+      let google_books_volume_id = data.google_books_volume_id || null
+      let page_count = data.page_count ?? null
+      let description = data.description ?? null
+      let publisher = data.publisher ?? null
+      let category = data.category || 'General'
+
+      // Auto-detect with Google Books if cover is missing and ISBN or title is present
+      if (!cover_image_url && (data.isbn || data.title)) {
+        try {
+          const cleanIsbn = data.isbn?.replace(/[^0-9X]/gi, '')
+          const query = (cleanIsbn && cleanIsbn.length >= 10) ? cleanIsbn : (data.title || '')
+          const searchType = (cleanIsbn && cleanIsbn.length >= 10) ? 'isbn' : 'title'
+          if (query.trim()) {
+            const gbResults = await searchGoogleBooks(query, searchType, 1)
+            if (gbResults && gbResults.length > 0) {
+              const top = gbResults[0]
+              if (top.coverUrl) cover_image_url = top.coverUrl
+              if (!google_books_volume_id && top.volumeId) google_books_volume_id = top.volumeId
+              if (!page_count && top.pageCount) page_count = top.pageCount
+              if (!description && top.description) description = top.description
+              if (!publisher && top.publisher) publisher = top.publisher
+              if ((!category || category === 'General') && top.categories) {
+                const c = top.categories.split(',')[0].trim()
+                if (c) category = c
+              }
+            } else if (cleanIsbn && cleanIsbn.length >= 10) {
+              cover_image_url = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
+            }
+          }
+        } catch {
+          const cleanIsbn = data.isbn?.replace(/[^0-9X]/gi, '')
+          if (cleanIsbn && cleanIsbn.length >= 10) {
+            cover_image_url = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
+          }
+        }
+      }
+
       const { data: book, error } = await supabase
         .from('books')
-        .insert({ ...data, book_code })
+        .insert({
+          ...data,
+          book_code,
+          cover_image_url,
+          google_books_volume_id,
+          page_count,
+          description,
+          publisher,
+          category,
+          metadata_source: google_books_volume_id ? 'google_books' : (data.metadata_source || 'manual'),
+        })
         .select()
         .single()
 
@@ -275,7 +324,7 @@ export function useBookCategories() {
   })
 }
 
-// ─── Fetch distinct book owners ───────────────────────────────
+// ─── Fetch distinct book owners (Readers only) ─────────────
 export function useBookOwners() {
   return useQuery({
     queryKey: ['book-owners'],
@@ -287,8 +336,16 @@ export function useBookOwners() {
         .not('owned_by', 'is', null)
 
       if (error) throw error
-      const rawOwners = (data ?? []).map((r: any) => (r.owned_by ? String(r.owned_by).trim() : '')).filter(Boolean) as string[]
-      const owners = [...new Set(rawOwners)].sort((a: string, b: string) => a.localeCompare(b))
+      const invalidCategoryPatterns = new Set([
+        'engineering', 'hr', 'management', 'general', 'office collection',
+        'technology', 'self-help', 'psychology', 'business', 'history',
+        'leadership', 'strategy', 'memoir', 'fiction', 'non-fiction', 'science'
+      ])
+      const rawOwners = (data ?? [])
+        .map((r: any) => (r.owned_by ? String(r.owned_by).trim() : ''))
+        .filter(Boolean) as string[]
+      const validOwners = rawOwners.filter(o => !invalidCategoryPatterns.has(o.toLowerCase()))
+      const owners = [...new Set(validOwners)].sort((a: string, b: string) => a.localeCompare(b))
       return owners
     },
   })

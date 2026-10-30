@@ -15,20 +15,21 @@ const INITIAL_EMPLOYEES = [
 
 const INITIAL_BOOKS = [
   { id: '22222222-0002-0002-0002-000000000001', book_code: 'BK001', title: 'Clean Code', author: 'Robert C. Martin', category: 'Technology', isbn: '9780132350884', publisher: 'Prentice Hall', published_year: 2008, language: 'English', page_count: 431, status: 'Available', condition: 'Good', owned_by: 'Aisha Rao', date_added: '2023-01-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780132350884-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-01-10T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000002', book_code: 'BK002', title: 'The Pragmatic Programmer', author: 'David Thomas', category: 'Technology', isbn: '9780135957059', publisher: 'Addison-Wesley', published_year: 2019, language: 'English', page_count: 352, status: 'Borrowed', condition: 'Good', owned_by: 'Office Collection', date_added: '2023-01-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780135957059-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-01-10T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000002', book_code: 'BK002', title: 'The Pragmatic Programmer', author: 'David Thomas', category: 'Technology', isbn: '9780135957059', publisher: 'Addison-Wesley', published_year: 2019, language: 'English', page_count: 352, status: 'Borrowed', condition: 'Good', owned_by: 'Rahul Sharma', date_added: '2023-01-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780135957059-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-01-10T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000003', book_code: 'BK003', title: 'Atomic Habits', author: 'James Clear', category: 'Self-Help', isbn: '9780735211292', publisher: 'Avery', published_year: 2018, language: 'English', page_count: 320, status: 'Borrowed', condition: 'Excellent', owned_by: 'Priya Nair', date_added: '2023-02-15', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780735211292-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-02-15T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000004', book_code: 'BK004', title: 'Deep Work', author: 'Cal Newport', category: 'Self-Help', isbn: '9781455586691', publisher: 'Grand Central', published_year: 2016, language: 'English', page_count: 296, status: 'Available', condition: 'Good', owned_by: 'Aisha Rao', date_added: '2023-02-15', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781455586691-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-02-15T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000005', book_code: 'BK005', title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman', category: 'Psychology', isbn: '9780374533557', publisher: 'Farrar Straus', published_year: 2011, language: 'English', page_count: 499, status: 'Available', condition: 'Fair', owned_by: 'Karthik Iyer', date_added: '2023-03-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780374533557-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-03-01T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000006', book_code: 'BK006', title: 'The Lean Startup', author: 'Eric Ries', category: 'Business', isbn: '9780307887894', publisher: 'Crown Business', published_year: 2011, language: 'English', page_count: 336, status: 'Available', condition: 'Good', owned_by: 'Office Collection', date_added: '2023-03-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780307887894-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-03-01T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000007', book_code: 'BK007', title: 'Sapiens: A Brief History', author: 'Yuval Noah Harari', category: 'History', isbn: '9780062316097', publisher: 'Harper', published_year: 2015, language: 'English', page_count: 443, status: 'Available', condition: 'Good', owned_by: 'Office Collection', date_added: '2023-03-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780062316097-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-03-10T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000006', book_code: 'BK006', title: 'The Lean Startup', author: 'Eric Ries', category: 'Business', isbn: '9780307887894', publisher: 'Crown Business', published_year: 2011, language: 'English', page_count: 336, status: 'Available', condition: 'Good', owned_by: 'Suresh Mehta', date_added: '2023-03-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780307887894-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-03-01T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000007', book_code: 'BK007', title: 'Sapiens: A Brief History', author: 'Yuval Noah Harari', category: 'History', isbn: '9780062316097', publisher: 'Harper', published_year: 2015, language: 'English', page_count: 443, status: 'Available', condition: 'Good', owned_by: 'Divya Krishnan', date_added: '2023-03-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780062316097-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-03-10T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000008', book_code: 'BK008', title: 'Zero to One', author: 'Peter Thiel', category: 'Business', isbn: '9780804139021', publisher: 'Crown Business', published_year: 2014, language: 'English', page_count: 224, status: 'Reserved', condition: 'Good', owned_by: 'Suresh Mehta', date_added: '2023-04-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780804139021-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-04-01T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000009', book_code: 'BK009', title: 'The Phoenix Project', author: 'Gene Kim', category: 'Technology', isbn: '9781942788294', publisher: 'IT Revolution', published_year: 2018, language: 'English', page_count: 432, status: 'Available', condition: 'Excellent', owned_by: 'Rahul Sharma', date_added: '2023-04-05', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781942788294-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-04-05T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000010', book_code: 'BK010', title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', category: 'Technology', isbn: '9781449373320', publisher: "O'Reilly Media", published_year: 2017, language: 'English', page_count: 616, status: 'Lost', condition: 'Poor', owned_by: 'Office Collection', date_added: '2023-04-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781449373320-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-04-10T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000011', book_code: 'BK011', title: 'Good to Great', author: 'Jim Collins', category: 'Business', isbn: '9780066620992', publisher: 'HarperBusiness', published_year: 2001, language: 'English', page_count: 320, status: 'Available', condition: 'Good', owned_by: 'Office Collection', date_added: '2023-05-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780066620992-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-01T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000012', book_code: 'BK012', title: 'Start With Why', author: 'Simon Sinek', category: 'Leadership', isbn: '9781591846444', publisher: 'Portfolio', published_year: 2009, language: 'English', page_count: 256, status: 'Under Repair', condition: 'Fair', owned_by: 'Office Collection', date_added: '2023-05-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781591846444-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-01T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000013', book_code: 'BK013', title: 'The Art of War', author: 'Sun Tzu', category: 'Strategy', isbn: '9780195014761', publisher: 'Oxford University', published_year: 1963, language: 'English', page_count: 160, status: 'Available', condition: 'Good', owned_by: 'Office Collection', date_added: '2023-05-15', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780195014761-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-15T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000010', book_code: 'BK010', title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', category: 'Technology', isbn: '9781449373320', publisher: "O'Reilly Media", published_year: 2017, language: 'English', page_count: 616, status: 'Lost', condition: 'Poor', owned_by: 'Aisha Rao', date_added: '2023-04-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781449373320-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-04-10T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000011', book_code: 'BK011', title: 'Good to Great', author: 'Jim Collins', category: 'Business', isbn: '9780066620992', publisher: 'HarperBusiness', published_year: 2001, language: 'English', page_count: 320, status: 'Available', condition: 'Good', owned_by: 'Karthik Iyer', date_added: '2023-05-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780066620992-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-01T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000012', book_code: 'BK012', title: 'Start With Why', author: 'Simon Sinek', category: 'Leadership', isbn: '9781591846444', publisher: 'Portfolio', published_year: 2009, language: 'English', page_count: 256, status: 'Under Repair', condition: 'Fair', owned_by: 'Priya Nair', date_added: '2023-05-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9781591846444-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-01T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000013', book_code: 'BK013', title: 'The Art of War', author: 'Sun Tzu', category: 'Strategy', isbn: '9780195014761', publisher: 'Oxford University', published_year: 1963, language: 'English', page_count: 160, status: 'Available', condition: 'Good', owned_by: 'Divya Krishnan', date_added: '2023-05-15', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780195014761-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-05-15T00:00:00Z' },
   { id: '22222222-0002-0002-0002-000000000014', book_code: 'BK014', title: 'Educated', author: 'Tara Westover', category: 'Memoir', isbn: '9780399590504', publisher: 'Random House', published_year: 2018, language: 'English', page_count: 352, status: 'Available', condition: 'Good', owned_by: 'Divya Krishnan', date_added: '2023-06-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780399590504-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-06-01T00:00:00Z' },
-  { id: '22222222-0002-0002-0002-000000000015', book_code: 'BK015', title: 'The 7 Habits of Highly Effective People', author: 'Stephen R. Covey', category: 'Self-Help', isbn: '9780743269513', publisher: 'Free Press', published_year: 2004, language: 'English', page_count: 432, status: 'Available', condition: 'Fair', owned_by: 'Office Collection', date_added: '2023-06-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780743269513-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-06-10T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000015', book_code: 'BK015', title: 'The 7 Habits of Highly Effective People', author: 'Stephen R. Covey', category: 'Self-Help', isbn: '9780743269513', publisher: 'Free Press', published_year: 2004, language: 'English', page_count: 432, status: 'Available', condition: 'Fair', owned_by: 'Priya Nair', date_added: '2023-06-10', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9780743269513-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-06-10T00:00:00Z' },
+  { id: '22222222-0002-0002-0002-000000000016', book_code: 'BK016', title: 'Aadu Jeevitham', author: 'Benyamin', category: 'Fiction', isbn: '9788126421077', publisher: 'Green Books', published_year: 2008, language: 'Malayalam / English', page_count: 255, status: 'Available', condition: 'Good', owned_by: 'Rahul Sharma', date_added: '2023-07-01', cover_image_url: 'https://covers.openlibrary.org/b/isbn/9788126421077-M.jpg', metadata_source: 'manual', archived_at: null, is_demo: true, created_at: '2023-07-01T00:00:00Z' },
 ]
 
 const INITIAL_BORROWINGS = [
@@ -138,28 +139,70 @@ function getTableData(table: string): any[] {
       if (table === 'app_settings' && data[0] && data[0].google_books_api_key === undefined) {
         data[0].google_books_api_key = ''
       }
-      // Ensure books have cover_image_url and employee owners for demo books
+      // Ensure books have cover_image_url, Aadu Jeevitham, and ONLY reader names for owned_by
       if (table === 'books' && Array.isArray(data)) {
         let changed = false
+        const hasAadu = data.some((b: any) => b.title?.toLowerCase().includes('aadu jeevitham') || b.book_code === 'BK016')
+        if (!hasAadu) {
+          data.push({
+            id: '22222222-0002-0002-0002-000000000016',
+            book_code: 'BK016',
+            title: 'Aadu Jeevitham',
+            author: 'Benyamin',
+            category: 'Fiction',
+            isbn: '9788126421077',
+            publisher: 'Green Books',
+            published_year: 2008,
+            language: 'Malayalam / English',
+            page_count: 255,
+            status: 'Available',
+            condition: 'Good',
+            owned_by: 'Rahul Sharma',
+            date_added: '2023-07-01',
+            cover_image_url: 'https://covers.openlibrary.org/b/isbn/9788126421077-M.jpg',
+            metadata_source: 'manual',
+            archived_at: null,
+            is_demo: true,
+            created_at: '2023-07-01T00:00:00Z',
+          })
+          changed = true
+        }
         const demoOwnerMap: Record<string, string> = {
           BK001: 'Aisha Rao',
+          BK002: 'Rahul Sharma',
           BK003: 'Priya Nair',
           BK004: 'Aisha Rao',
           BK005: 'Karthik Iyer',
+          BK006: 'Suresh Mehta',
+          BK007: 'Divya Krishnan',
           BK008: 'Suresh Mehta',
           BK009: 'Rahul Sharma',
+          BK010: 'Aisha Rao',
+          BK011: 'Karthik Iyer',
+          BK012: 'Priya Nair',
+          BK013: 'Divya Krishnan',
           BK014: 'Divya Krishnan',
+          BK015: 'Priya Nair',
         }
-        data.forEach((b: any) => {
+        const activeReaders = ['Aisha Rao', 'Suresh Mehta', 'Priya Nair', 'Karthik Iyer', 'Divya Krishnan', 'Rahul Sharma']
+        const categoryPatterns = new Set([
+          'engineering', 'hr', 'management', 'general', 'office collection',
+          'technology', 'self-help', 'psychology', 'business', 'history',
+          'leadership', 'strategy', 'memoir', 'fiction', 'non-fiction', 'science'
+        ])
+        data.forEach((b: any, index: number) => {
           if (!b.cover_image_url && b.isbn) {
             b.cover_image_url = `https://covers.openlibrary.org/b/isbn/${String(b.isbn).replace(/[^0-9X]/gi, '')}-M.jpg`
             changed = true
           }
-          if (b.is_demo && demoOwnerMap[b.book_code] && (!b.owned_by || b.owned_by === 'Engineering' || b.owned_by === 'HR' || b.owned_by === 'Management' || b.owned_by === 'General')) {
-            b.owned_by = demoOwnerMap[b.book_code]
-            changed = true
-          } else if (b.is_demo && (!b.owned_by || b.owned_by === 'Engineering' || b.owned_by === 'HR' || b.owned_by === 'Management' || b.owned_by === 'General')) {
-            b.owned_by = 'Office Collection'
+          const currentOwner = (b.owned_by ? String(b.owned_by).trim() : '')
+          if (demoOwnerMap[b.book_code]) {
+            if (b.owned_by !== demoOwnerMap[b.book_code]) {
+              b.owned_by = demoOwnerMap[b.book_code]
+              changed = true
+            }
+          } else if (!currentOwner || categoryPatterns.has(currentOwner.toLowerCase())) {
+            b.owned_by = activeReaders[index % activeReaders.length]
             changed = true
           }
         })
@@ -206,6 +249,9 @@ function getTableData(table: string): any[] {
 function saveTableData(table: string, data: any[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_PREFIX + table, JSON.stringify(data))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('booknook_db_change', { detail: { table } }))
+    }
   } catch (e) {
     console.error('Failed saving mock table:', table, e)
   }
@@ -478,8 +524,8 @@ class MockQueryBuilder {
       const employees = getTableData('employees')
       const book = books.find((b) => b.id === item.book_id)
       const employee = employees.find((e) => e.id === item.employee_id)
-      item.book = book ? { id: book.id, book_code: book.book_code, title: book.title, cover_image_url: book.cover_image_url, status: book.status } : null
-      item.employee = employee ? { id: employee.id, full_name: employee.full_name, department: employee.department, employee_code: employee.employee_code } : null
+      item.book = book ? { id: book.id, book_code: book.book_code, title: book.title, author: book.author, cover_image_url: book.cover_image_url, status: book.status, condition: book.condition, shelf_number: book.shelf_number } : null
+      item.employee = employee ? { id: employee.id, full_name: employee.full_name, department: employee.department, employee_code: employee.employee_code, email: employee.email } : null
     } else if (this.table === 'book_requests') {
       const books = getTableData('books')
       const employees = getTableData('employees')
@@ -698,7 +744,7 @@ export const mockSupabase = {
     }
 
     if (fnName === 'issue_book') {
-      const { p_book_id, p_employee_id, p_issue_date, p_due_date, p_remarks } = params || {}
+      const { p_book_id, p_employee_id, p_issue_date, p_due_date, p_remarks, p_request_id } = params || {}
       const books = getTableData('books')
       const borrowings = getTableData('borrowings')
 
@@ -716,20 +762,22 @@ export const mockSupabase = {
         due_date: p_due_date,
         return_date: null,
         issue_remarks: p_remarks || null,
+        request_id: p_request_id || null,
         created_at: new Date().toISOString(),
       }
       borrowings.unshift(newBorrowing)
       saveTableData('borrowings', borrowings)
 
-      // Fulfill any active request for this employee and book
+      // Fulfill any active request for this employee and book (or matching p_request_id)
       const requests = getTableData('book_requests')
       const reqIdx = requests.findIndex(
-        (r) => r.book_id === p_book_id && r.employee_id === p_employee_id && (r.status === 'Waiting' || r.status === 'Ready for Pickup')
+        (r) => (p_request_id ? r.id === p_request_id : r.book_id === p_book_id && r.employee_id === p_employee_id && (r.status === 'Waiting' || r.status === 'Ready for Pickup'))
       )
       if (reqIdx !== -1) {
-        requests[reqIdx].status = 'Fulfilled'
-        requests[reqIdx].queue_position = null
-        requests[reqIdx].updated_at = new Date().toISOString()
+        const reqItem = requests[reqIdx]
+        reqItem.status = 'Fulfilled'
+        reqItem.queue_position = null
+        reqItem.updated_at = new Date().toISOString()
 
         // Recompact remaining queue for this book
         const remainingQueue = requests
@@ -739,13 +787,29 @@ export const mockSupabase = {
           item.queue_position = idx + 1
         })
         saveTableData('book_requests', requests)
+
+        // Queue audit log
+        const queueAudit = getTableData('queue_audit_logs')
+        queueAudit.unshift({
+          id: `mock-queue-audit-${Date.now()}`,
+          book_id: p_book_id,
+          request_id: reqItem.id,
+          employee_id: p_employee_id,
+          action: 'FULFILLED',
+          prev_position: reqItem.queue_position,
+          new_position: null,
+          reason: 'Book handed over to reader (Loan created)',
+          performed_by: 'Librarian',
+          created_at: new Date().toISOString(),
+        })
+        saveTableData('queue_audit_logs', queueAudit)
       }
 
       return { data: newBorrowing.id, error: null }
     }
 
     if (fnName === 'return_book') {
-      const { p_borrowing_id, p_return_date, p_return_remarks, p_return_condition } = params || {}
+      const { p_borrowing_id, p_return_date, p_return_remarks, p_return_condition, p_next_request_ready } = params || {}
       const borrowings = getTableData('borrowings')
       const books = getTableData('books')
 
@@ -753,13 +817,47 @@ export const mockSupabase = {
       if (loan) {
         loan.return_date = p_return_date || new Date().toISOString().split('T')[0]
         loan.return_remarks = p_return_remarks || null
+        if (p_return_condition) loan.return_condition = p_return_condition
         saveTableData('borrowings', borrowings)
 
         const book = books.find((b) => b.id === loan.book_id)
         if (book) {
-          book.status = 'Available'
+          if (p_next_request_ready) {
+            book.status = 'Reserved'
+          } else {
+            book.status = 'Available'
+          }
           if (p_return_condition) book.condition = p_return_condition
           saveTableData('books', books)
+        }
+
+        // If next request was chosen to be marked Ready for Pickup
+        if (p_next_request_ready && loan.book_id) {
+          const requests = getTableData('book_requests')
+          const nextReq = requests
+            .filter((r) => r.book_id === loan.book_id && r.status === 'Waiting')
+            .sort((a, b) => (a.queue_position || 999) - (b.queue_position || 999))[0]
+
+          if (nextReq) {
+            nextReq.status = 'Ready for Pickup'
+            nextReq.notified_at = new Date().toISOString()
+            saveTableData('book_requests', requests)
+
+            const queueAudit = getTableData('queue_audit_logs')
+            queueAudit.unshift({
+              id: `mock-queue-audit-${Date.now()}`,
+              book_id: loan.book_id,
+              request_id: nextReq.id,
+              employee_id: nextReq.employee_id,
+              action: 'READY_FOR_PICKUP',
+              prev_position: nextReq.queue_position,
+              new_position: nextReq.queue_position,
+              reason: 'Marked ready for pickup upon return of prior loan',
+              performed_by: 'Librarian',
+              created_at: new Date().toISOString(),
+            })
+            saveTableData('queue_audit_logs', queueAudit)
+          }
         }
       }
 

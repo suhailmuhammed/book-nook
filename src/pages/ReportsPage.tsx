@@ -30,7 +30,7 @@ async function generateBookCatalog() {
     { header: 'Year',          key: 'published_year',  width: 8  },
     { header: 'Status',        key: 'status',          width: 14 },
     { header: 'Condition',     key: 'condition',       width: 12 },
-    { header: 'Owned By',      key: 'owned_by',        width: 16 },
+    { header: 'Owned By (Reader)', key: 'owned_by',    width: 22 },
     { header: 'Shelf',         key: 'shelf_number',    width: 10 },
     { header: 'Date Added',    key: 'date_added',      width: 14 },
     { header: 'Language',      key: 'language',        width: 12 },
@@ -41,8 +41,18 @@ async function generateBookCatalog() {
   ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
   ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } }
 
+  const invalidCategoryKeywords = new Set([
+    'engineering', 'hr', 'management', 'general', 'office collection',
+    'technology', 'self-help', 'psychology', 'business', 'history',
+    'leadership', 'strategy', 'memoir', 'fiction', 'non-fiction', 'science'
+  ])
+
   for (const book of books ?? []) {
-    ws.addRow(book)
+    const row = { ...book }
+    if (!row.owned_by || invalidCategoryKeywords.has(String(row.owned_by).toLowerCase().trim())) {
+      row.owned_by = 'Aisha Rao'
+    }
+    ws.addRow(row)
   }
 
   ws.autoFilter = { from: 'A1', to: 'N1' }

@@ -265,12 +265,12 @@ export default function BooksPage() {
 
         {/* Owned By Filter */}
         <Select value={ownedBy} onValueChange={handleOwnedByChange}>
-          <SelectTrigger id="owned-by-filter" className="w-[150px] h-9 text-xs">
+          <SelectTrigger id="owned-by-filter" className="w-[160px] h-9 text-xs">
             <User className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-            <SelectValue placeholder="Owned By" />
+            <SelectValue placeholder="Owned By (Reader)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">All Owners</SelectItem>
+            <SelectItem value="all" className="text-xs">All Readers</SelectItem>
             {owners.map(o => (
               <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
             ))}
@@ -404,7 +404,7 @@ export default function BooksPage() {
                         ) : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td>
-                        {book.owned_by && book.owned_by !== 'Office Collection' ? (
+                        {book.owned_by ? (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -413,16 +413,13 @@ export default function BooksPage() {
                               setPage(1)
                             }}
                             className="inline-flex items-center gap-1 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 px-2 py-0.5 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors cursor-pointer text-left"
-                            title={`Filter by owner: ${book.owned_by}`}
+                            title={`Filter books owned by ${book.owned_by}`}
                           >
                             <User className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span className="truncate max-w-[130px]">{book.owned_by}</span>
                           </button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 border border-border/50 px-2 py-0.5 rounded-full">
-                            <Building2 className="h-3 w-3 text-muted-foreground/70 shrink-0" />
-                            <span>Office Collection</span>
-                          </span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                       <td><StatusBadge status={book.status} /></td>
@@ -474,16 +471,13 @@ export default function BooksPage() {
                     {/* Owned By section on mobile */}
                     <div className="flex items-center gap-1.5 text-xs mt-1 text-muted-foreground">
                       <span className="text-[11px] font-medium text-muted-foreground/80">Owned by:</span>
-                      {book.owned_by && book.owned_by !== 'Office Collection' ? (
+                      {book.owned_by ? (
                         <span className="inline-flex items-center gap-1 font-semibold text-amber-800 dark:text-amber-300">
                           <User className="h-2.5 w-2.5" />
                           {book.owned_by}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-muted-foreground">
-                          <Building2 className="h-2.5 w-2.5" />
-                          Office Collection
-                        </span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </div>
 

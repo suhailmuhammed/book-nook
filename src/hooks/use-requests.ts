@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/hooks/use-toast'
 import type { BookRequest, BookRequestWithDetails, RequestStatus } from '@/lib/database.types'
 
 // Fetch all active requests for a specific book (ordered by queue_position)
@@ -362,6 +363,36 @@ export function useUpdateRequestStatus() {
 
       if (error) throw error
 
+      // Update book status accordingly
+      if (status === 'Ready for Pickup') {
+        // Reserve the physical copy so another reader cannot claim it
+        await supabase
+          .from('books')
+          .update({ status: 'Reserved' })
+          .eq('id', bookId)
+      } else if (status === 'Waiting' || status === 'Cancelled') {
+        // If releasing reservation or cancelling, verify if book should revert to Available
+        const { data: otherReady } = await supabase
+          .from('book_requests')
+          .select('id')
+          .eq('book_id', bookId)
+          .eq('status', 'Ready for Pickup')
+          .neq('id', requestId)
+
+        const { data: activeLoan } = await supabase
+          .from('borrowings')
+          .select('id')
+          .eq('book_id', bookId)
+          .is('return_date', null)
+
+        if ((!otherReady || otherReady.length === 0) && (!activeLoan || activeLoan.length === 0)) {
+          await supabase
+            .from('books')
+            .update({ status: 'Available' })
+            .eq('id', bookId)
+        }
+      }
+
       await supabase.from('queue_audit_logs').insert({
         book_id: bookId,
         request_id: requestId,
@@ -373,10 +404,137 @@ export function useUpdateRequestStatus() {
       return data
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['books'] })
       qc.invalidateQueries({ queryKey: ['book-waiting-list'] })
       qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
       qc.invalidateQueries({ queryKey: ['all-book-requests'] })
       qc.invalidateQueries({ queryKey: ['employee-requests'] })
+      qc.invalidateQueries({ queryKey: ['public-stats'] })
+      qc.invalidateQueries({ queryKey: ['borrowings'] })
+    },
+  })
+}
+
+// Complete Book Handover: Ready for Pickup -> Book Given -> Active Loan
+export function useBookGiven() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      requestId,
+      bookId,
+      employeeId,
+      readerName,
+      issueDate,
+      dueDate,
+      remarks,
+      actorUserId,
+    }: {
+      requestId: string
+      bookId: string
+      employeeId: string
+      readerName: string
+      issueDate: string
+      dueDate: string
+      remarks?: string
+      actorUserId?: string
+    }) => {
+      // 1. Verify no active loan already exists for this book
+      const { data: existingLoan } = await supabase
+        .from('borrowings')
+        .select('id')
+        .eq('book_id', bookId)
+        .is('return_date', null)
+
+      if (existingLoan && existingLoan.length > 0) {
+        throw new Error('This book already has an active loan. Please record its return before issuing.')
+      }
+
+      // 2. Execute issue transaction with request_id linked
+      const { data: newBorrowingId, error: issueErr } = await supabase.rpc('issue_book', {
+        p_book_id: bookId,
+        p_employee_id: employeeId,
+        p_issue_date: issueDate,
+        p_due_date: dueDate,
+        p_remarks: remarks ?? null,
+        p_actor_user_id: actorUserId ?? '',
+        p_request_id: requestId,
+      })
+
+      if (issueErr) {
+        throw new Error(issueErr.message || 'Failed to issue book handover.')
+      }
+
+      // 3. Guarantee request status is Fulfilled and removed from active queue
+      await supabase
+        .from('book_requests')
+        .update({
+          status: 'Fulfilled',
+          queue_position: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId)
+
+      // 4. Guarantee book status is Borrowed (On Loan)
+      await supabase
+        .from('books')
+        .update({ status: 'Borrowed' })
+        .eq('id', bookId)
+
+      // 5. Recompact remaining waiting queue positions for this book
+      const { data: remainingQueue } = await supabase
+        .from('book_requests')
+        .select('id, queue_position')
+        .eq('book_id', bookId)
+        .in('status', ['Waiting', 'Ready for Pickup'])
+        .order('queue_position', { ascending: true })
+
+      if (remainingQueue && remainingQueue.length > 0) {
+        for (let i = 0; i < remainingQueue.length; i++) {
+          await supabase
+            .from('book_requests')
+            .update({ queue_position: i + 1 })
+            .eq('id', remainingQueue[i].id)
+        }
+      }
+
+      // 6. Record audit log
+      await supabase.from('queue_audit_logs').insert({
+        book_id: bookId,
+        request_id: requestId,
+        employee_id: employeeId,
+        action: 'FULFILLED',
+        reason: 'Book given to reader (Issued loan)',
+        performed_by: 'Librarian',
+      })
+
+      return { borrowingId: newBorrowingId, readerName }
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['borrowings'] })
+      qc.invalidateQueries({ queryKey: ['books'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['recent-activity'] })
+      qc.invalidateQueries({ queryKey: ['book-waiting-list'] })
+      qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
+      qc.invalidateQueries({ queryKey: ['all-book-requests'] })
+      qc.invalidateQueries({ queryKey: ['employee-requests'] })
+      qc.invalidateQueries({ queryKey: ['my-borrowings'] })
+      qc.invalidateQueries({ queryKey: ['public-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-borrowings'] })
+
+      toast({
+        title: 'Book Issued',
+        description: `Book successfully issued to ${res.readerName}.`,
+        variant: 'success' as never,
+      })
+    },
+    onError: (err: Error) => {
+      toast({
+        title: 'Handover Failed',
+        description: err.message || 'Could not complete book handover.',
+        variant: 'destructive',
+      })
     },
   })
 }

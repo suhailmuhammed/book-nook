@@ -298,7 +298,7 @@ export function BookDetailDialog({
 
             <div className="flex items-center justify-between sm:justify-start gap-2">
               <span className="text-muted-foreground text-xs font-medium min-w-[110px]">Owned By:</span>
-              <span className="font-medium text-xs">{book.owned_by || 'Office Collection'}</span>
+              <span className="font-medium text-xs">{book.owned_by || '—'}</span>
             </div>
 
             <div className="flex items-center justify-between sm:justify-start gap-2">

@@ -140,6 +140,7 @@ export interface Database {
           id: string
           book_id: string
           employee_id: string
+          request_id: string | null
           issue_date: string
           due_date: string
           return_date: string | null
@@ -155,6 +156,7 @@ export interface Database {
           id?: string
           book_id: string
           employee_id: string
+          request_id?: string | null
           issue_date?: string
           due_date: string
           return_date?: string | null
@@ -170,6 +172,7 @@ export interface Database {
           id?: string
           book_id?: string
           employee_id?: string
+          request_id?: string | null
           issue_date?: string
           due_date?: string
           return_date?: string | null
@@ -349,6 +352,7 @@ export interface Database {
           p_due_date: string
           p_remarks: string | null
           p_actor_user_id: string
+          p_request_id?: string | null
         }
         Returns: string
       }

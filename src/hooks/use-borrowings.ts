@@ -90,6 +90,7 @@ export function useIssueBook() {
       issueDate: string
       dueDate: string
       remarks?: string
+      requestId?: string
     }) => {
       const { data, error } = await supabase.rpc('issue_book', {
         p_book_id: params.bookId,
@@ -98,6 +99,7 @@ export function useIssueBook() {
         p_due_date: params.dueDate,
         p_remarks: params.remarks ?? null,
         p_actor_user_id: user?.id ?? '',
+        p_request_id: params.requestId ?? null,
       })
       if (error) throw new Error(error.message)
       return data as string
@@ -111,6 +113,9 @@ export function useIssueBook() {
       qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
       qc.invalidateQueries({ queryKey: ['all-book-requests'] })
       qc.invalidateQueries({ queryKey: ['employee-requests'] })
+      qc.invalidateQueries({ queryKey: ['my-borrowings'] })
+      qc.invalidateQueries({ queryKey: ['public-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-borrowings'] })
       toast({ title: 'Book issued', description: 'The loan has been recorded.', variant: 'success' as never })
     },
     onError: (err: Error) => {
@@ -129,6 +134,7 @@ export function useReturnBook() {
       returnDate: string
       returnRemarks?: string
       returnCondition?: string
+      nextRequestReady?: boolean
     }) => {
       const { error } = await supabase.rpc('return_book', {
         p_borrowing_id: params.borrowingId,
@@ -136,6 +142,7 @@ export function useReturnBook() {
         p_return_remarks: params.returnRemarks ?? null,
         p_return_condition: params.returnCondition ?? null,
         p_actor_user_id: user?.id ?? '',
+        p_next_request_ready: params.nextRequestReady ?? false,
       })
       if (error) throw new Error(error.message)
     },
@@ -148,10 +155,44 @@ export function useReturnBook() {
       qc.invalidateQueries({ queryKey: ['all-waiting-lists'] })
       qc.invalidateQueries({ queryKey: ['all-book-requests'] })
       qc.invalidateQueries({ queryKey: ['employee-requests'] })
+      qc.invalidateQueries({ queryKey: ['my-borrowings'] })
+      qc.invalidateQueries({ queryKey: ['public-stats'] })
+      qc.invalidateQueries({ queryKey: ['book-borrowings'] })
       toast({ title: 'Return recorded', description: 'The book has been returned.', variant: 'success' as never })
     },
     onError: (err: Error) => {
       toast({ title: 'Failed to record return', description: err.message, variant: 'destructive' })
+    },
+  })
+}
+
+export function useUpdateDueDate() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ loanId, dueDate, remarks }: { loanId: string; dueDate: string; remarks?: string }) => {
+      const { error } = await supabase
+        .from('borrowings')
+        .update({ due_date: dueDate })
+        .eq('id', loanId)
+
+      if (error) throw error
+
+      await supabase.from('audit_logs').insert({
+        action: 'DUE_DATE_UPDATED',
+        entity_type: 'borrowings',
+        entity_id: loanId,
+        details: { dueDate, remarks },
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: BORROWINGS_QUERY_KEY })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      qc.invalidateQueries({ queryKey: ['recent-activity'] })
+      toast({ title: 'Due Date Updated', description: 'Expected return date has been updated.', variant: 'success' as never })
+    },
+    onError: (err: Error) => {
+      toast({ title: 'Failed to update due date', description: err.message, variant: 'destructive' })
     },
   })
 }

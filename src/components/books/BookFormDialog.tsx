@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Loader2, ExternalLink, ChevronDown, Check, User } from 'lucide-react'
+import { Search, Loader2, ExternalLink, ChevronDown, Check, User, Sparkles } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BookCover } from '@/components/ui/book-cover'
 import { useCreateBook, useUpdateBook, useGenerateBookCode } from '@/hooks/use-books'
 import { useEmployees } from '@/hooks/use-employees'
+import { toast } from '@/hooks/use-toast'
 import { searchGoogleBooks, type GoogleBooksSearchResult, today } from '@/lib/utils'
 import type { Book } from '@/lib/database.types'
 
@@ -176,18 +177,69 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
     }
   }
 
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false)
+  const [autoDetectStatus, setAutoDetectStatus] = useState<string | null>(null)
+
+  async function triggerAutoDetect(queryInput?: string, searchType?: 'isbn' | 'title') {
+    const rawIsbn = form.getValues('isbn')?.trim() || ''
+    const rawTitle = form.getValues('title')?.trim() || ''
+
+    const cleanIsbn = rawIsbn.replace(/[^0-9X]/gi, '')
+    const type = searchType || (cleanIsbn.length >= 10 ? 'isbn' : 'title')
+    const query = (queryInput && queryInput.trim()) || (type === 'isbn' ? cleanIsbn : rawTitle)
+
+    if (!query || query.length < 2) return
+
+    setIsAutoDetecting(true)
+    setAutoDetectStatus('Detecting book details & cover from Google Books…')
+
+    try {
+      const results = await searchGoogleBooks(query, type, 3)
+      if (results && results.length > 0) {
+        const top = results[0]
+        applyGoogleResult(top)
+        setAutoDetectStatus(`✨ Auto-detected "${top.title}" and loaded cover page!`)
+        toast({
+          title: 'Google Books Auto-Detected!',
+          description: `Loaded metadata and cover page for "${top.title}".`,
+        })
+      } else {
+        if (cleanIsbn.length >= 10 && !form.getValues('cover_image_url')) {
+          const fallbackCover = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
+          form.setValue('cover_image_url', fallbackCover)
+          setAutoDetectStatus('Cover page loaded from OpenLibrary archive.')
+        } else {
+          setAutoDetectStatus('No exact Google Books match found.')
+        }
+      }
+    } catch {
+      if (cleanIsbn.length >= 10 && !form.getValues('cover_image_url')) {
+        const fallbackCover = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
+        form.setValue('cover_image_url', fallbackCover)
+        setAutoDetectStatus('Cover page loaded from OpenLibrary archive.')
+      } else {
+        setAutoDetectStatus('Google Books API lookup timed out.')
+      }
+    } finally {
+      setIsAutoDetecting(false)
+      setTimeout(() => setAutoDetectStatus(null), 6000)
+    }
+  }
+
   function applyGoogleResult(result: GoogleBooksSearchResult) {
-    // Only populate metadata fields — never touch book_code, status, condition, owned_by, date_added
-    form.setValue('title',                  result.title || form.getValues('title'))
-    form.setValue('author',                 result.authors || form.getValues('author'))
-    form.setValue('isbn',                   result.isbn ?? form.getValues('isbn'))
-    form.setValue('publisher',              result.publisher || form.getValues('publisher'))
-    form.setValue('description',            result.description || form.getValues('description'))
-    form.setValue('cover_image_url',        result.coverUrl ?? form.getValues('cover_image_url'))
-    form.setValue('google_books_volume_id', result.volumeId)
+    if (result.title) form.setValue('title', result.title)
+    if (result.authors) form.setValue('author', result.authors)
+    if (result.isbn) form.setValue('isbn', result.isbn)
+    if (result.publisher) form.setValue('publisher', result.publisher)
+    if (result.description) form.setValue('description', result.description)
+    if (result.coverUrl) form.setValue('cover_image_url', result.coverUrl)
+    if (result.volumeId) form.setValue('google_books_volume_id', result.volumeId)
 
     if (result.pageCount) form.setValue('page_count', result.pageCount)
-    if (result.categories) form.setValue('category', result.categories.split(',')[0].trim() || form.getValues('category'))
+    if (result.categories) {
+      const topCat = result.categories.split(',')[0].trim()
+      if (topCat) form.setValue('category', topCat)
+    }
     if (result.language) form.setValue('language', result.language)
 
     const year = parseInt(result.publishedDate?.slice(0, 4) ?? '')
@@ -198,6 +250,38 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
   }
 
   async function onSubmit(data: FormData) {
+    let finalCoverUrl = data.cover_image_url || null
+    let finalVolId = data.google_books_volume_id || null
+
+    // If cover is missing, run one quick lookup before saving
+    if (!finalCoverUrl) {
+      const cleanIsbn = data.isbn?.replace(/[^0-9X]/gi, '')
+      if (cleanIsbn && cleanIsbn.length >= 10) {
+        try {
+          const quick = await searchGoogleBooks(cleanIsbn, 'isbn', 1)
+          if (quick[0]?.coverUrl) {
+            finalCoverUrl = quick[0].coverUrl
+            finalVolId = quick[0].volumeId
+          }
+        } catch {
+          // ignore
+        }
+        if (!finalCoverUrl) {
+          finalCoverUrl = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
+        }
+      } else if (data.title && data.title.trim().length >= 2) {
+        try {
+          const quick = await searchGoogleBooks(data.title.trim(), 'title', 1)
+          if (quick[0]?.coverUrl) {
+            finalCoverUrl = quick[0].coverUrl
+            finalVolId = quick[0].volumeId
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     const payload = {
       title:                  data.title,
       author:                 data.author || null,
@@ -214,9 +298,9 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
       date_added:             data.date_added || today(),
       status:                 data.status,
       condition:              data.condition,
-      cover_image_url:        data.cover_image_url || null,
-      google_books_volume_id: data.google_books_volume_id || null,
-      metadata_source:        data.google_books_volume_id ? 'google_books' as const : 'manual' as const,
+      cover_image_url:        finalCoverUrl,
+      google_books_volume_id: finalVolId,
+      metadata_source:        finalVolId ? 'google_books' as const : 'manual' as const,
       metadata_updated_at:    new Date().toISOString(),
     }
 
@@ -308,19 +392,39 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
         {/* Book Form */}
         <form id="book-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Cover preview */}
-          {coverPreview && (
-            <div className="flex items-center gap-3">
+          {coverPreview ? (
+            <div className="flex items-center gap-3 p-3 rounded-xl border bg-muted/30">
               <BookCover src={coverPreview} title={form.watch('title') || 'Preview'} size="md" />
-              <div>
-                <p className="text-xs font-medium">Cover Preview</p>
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full">
+                  <Sparkles className="h-3 w-3" /> Cover Page Auto-Loaded
+                </span>
+                <p className="text-xs text-muted-foreground truncate max-w-xs">{coverPreview}</p>
                 <button
                   type="button"
-                  className="text-xs text-destructive hover:underline"
+                  className="text-xs text-destructive hover:underline block pt-0.5"
                   onClick={() => form.setValue('cover_image_url', '')}
                 >
-                  Remove
+                  Remove Cover
                 </button>
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed bg-muted/20 text-xs">
+              <span className="text-muted-foreground">
+                No cover page yet. Enter title or ISBN to auto-detect from Google Books.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => triggerAutoDetect()}
+                disabled={isAutoDetecting || (!form.watch('title')?.trim() && !form.watch('isbn')?.trim())}
+                className="h-7 text-xs text-forest border-forest/30 hover:bg-forest/5"
+              >
+                <Sparkles className="h-3 w-3 mr-1 text-amber-500" />
+                Fetch Cover
+              </Button>
             </div>
           )}
 
@@ -349,8 +453,44 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
 
             {/* Title */}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="book-title-input">Title *</Label>
-              <Input id="book-title-input" {...form.register('title')} placeholder="Book title" />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="book-title-input">Title *</Label>
+                <button
+                  type="button"
+                  onClick={() => triggerAutoDetect(form.getValues('title'), 'title')}
+                  disabled={isAutoDetecting || !form.watch('title')?.trim()}
+                  className="text-xs text-forest hover:underline inline-flex items-center gap-1 font-medium disabled:opacity-50"
+                  title="Search Google Books for this title and auto-fill cover & details"
+                >
+                  {isAutoDetecting ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Detecting…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      <span>Auto-detect from Google Books</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <Input
+                id="book-title-input"
+                {...form.register('title')}
+                placeholder="Book title (e.g. Clean Code, Atomic Habits…)"
+                onBlur={(e) => {
+                  form.register('title').onBlur(e)
+                  if (!form.getValues('cover_image_url') && e.target.value.trim().length >= 3) {
+                    triggerAutoDetect(e.target.value.trim(), 'title')
+                  }
+                }}
+              />
+              {autoDetectStatus && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                  <Sparkles className="h-3 w-3" /> {autoDetectStatus}
+                </p>
+              )}
               {form.formState.errors.title && (
                 <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
               )}
@@ -383,8 +523,31 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
 
             {/* ISBN */}
             <div className="space-y-1.5">
-              <Label htmlFor="book-isbn-input">ISBN</Label>
-              <Input id="book-isbn-input" {...form.register('isbn')} placeholder="978-0-000-00000-0" />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="book-isbn-input">ISBN</Label>
+                <button
+                  type="button"
+                  onClick={() => triggerAutoDetect(form.getValues('isbn'), 'isbn')}
+                  disabled={isAutoDetecting || !form.watch('isbn')?.trim()}
+                  className="text-[11px] text-forest hover:underline inline-flex items-center gap-1 font-medium disabled:opacity-50"
+                  title="Search Google Books by ISBN"
+                >
+                  <Sparkles className="h-2.5 w-2.5 text-amber-500" />
+                  <span>Fetch by ISBN</span>
+                </button>
+              </div>
+              <Input
+                id="book-isbn-input"
+                {...form.register('isbn')}
+                placeholder="978-0-000-00000-0"
+                onBlur={(e) => {
+                  form.register('isbn').onBlur(e)
+                  const clean = e.target.value.replace(/[^0-9X]/gi, '')
+                  if (clean.length >= 10 && !form.getValues('cover_image_url')) {
+                    triggerAutoDetect(clean, 'isbn')
+                  }
+                }}
+              />
             </div>
 
             {/* Publisher */}
@@ -462,15 +625,15 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
             {/* Owned By with Reader Suggestions */}
             <div className="space-y-1.5 relative" ref={ownedByRef}>
               <div className="flex items-center justify-between">
-                <Label htmlFor="book-owned-input">Owned By</Label>
-                <span className="text-[11px] text-muted-foreground">Select reader or custom</span>
+                <Label htmlFor="book-owned-input">Owned By (Reader)</Label>
+                <span className="text-[11px] text-muted-foreground">Select reader name</span>
               </div>
               <div className="relative">
                 <Input
                   id="book-owned-input"
                   {...form.register('owned_by')}
                   onFocus={() => setShowOwnedBySuggestions(true)}
-                  placeholder="Select reader or enter custom owner"
+                  placeholder="Select reader name…"
                   autoComplete="off"
                   className="pr-8"
                 />
@@ -485,27 +648,11 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
                 </button>
               </div>
 
-              {/* Suggestions Dropdown */}
+              {/* Suggestions Dropdown (Readers Only) */}
               {showOwnedBySuggestions && (
                 <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border rounded-xl shadow-xl p-1.5 max-h-56 overflow-y-auto text-xs space-y-0.5 animate-fade-in">
-                  {/* Default / Common Option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      form.setValue('owned_by', 'Office Collection')
-                      setShowOwnedBySuggestions(false)
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between font-medium transition-colors ${
-                      (form.watch('owned_by') || '') === 'Office Collection' ? 'bg-forest/10 text-forest font-semibold' : 'hover:bg-muted text-forest'
-                    }`}
-                  >
-                    <span>🏢 Office Collection (Default)</span>
-                    {(form.watch('owned_by') || '') === 'Office Collection' && <Check className="h-3.5 w-3.5 shrink-0" />}
-                  </button>
-
-                  <div className="border-t my-1 opacity-50" />
                   <p className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Office Readers ({employees.length})
+                    Readers ({employees.length})
                   </p>
 
                   {employees.filter(e => {
@@ -515,7 +662,7 @@ export function BookFormDialog({ open, onOpenChange, book }: BookFormDialogProps
                       (e.employee_code && e.employee_code.toLowerCase().includes(q))
                   }).length === 0 ? (
                     <p className="px-2.5 py-2 text-muted-foreground text-center">
-                      No matching readers. Custom owner will be saved.
+                      No matching readers found.
                     </p>
                   ) : (
                     employees.filter(e => {

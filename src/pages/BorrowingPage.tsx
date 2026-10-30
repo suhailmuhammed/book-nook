@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   RotateCcw, Plus, Filter, AlertTriangle, CheckCircle2, Trash2, Calendar,
   User, Clock, Users, ArrowUp, ArrowDown, ArrowUpToLine, ArrowDownToLine,
-  Search, Check, ShieldCheck, Bookmark
+  Search, Check, ShieldCheck, Bookmark, Eye, BookOpen, History, Undo2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,11 +19,16 @@ import { formatDate, isOverdue, daysOverdue, daysBorrowed } from '@/lib/utils'
 import { IssueBookDialog } from '@/components/borrowing/IssueBookDialog'
 import { ReturnBookDialog } from '@/components/borrowing/ReturnBookDialog'
 import { AddRequestDialog } from '@/components/borrowing/AddRequestDialog'
+import { BookGivenDialog } from '@/components/borrowing/BookGivenDialog'
+import { EditDueDateDialog } from '@/components/borrowing/EditDueDateDialog'
+import { LoanDetailDialog } from '@/components/borrowing/LoanDetailDialog'
+import { RequestHistoryDialog } from '@/components/borrowing/RequestHistoryDialog'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase'
 import type { BorrowingWithDetails, BookRequestWithDetails } from '@/lib/database.types'
 
 type OpsTab = 'loans' | 'overdue' | 'requests' | 'waiting-lists' | 'returned'
@@ -38,6 +43,10 @@ export default function BorrowingPage() {
   const [issueOpen, setIssueOpen] = useState(false)
   const [addRequestOpen, setAddRequestOpen] = useState(false)
   const [returnLoan, setReturnLoan] = useState<BorrowingWithDetails | null>(null)
+  const [detailLoan, setDetailLoan] = useState<BorrowingWithDetails | null>(null)
+  const [editDueLoan, setEditDueLoan] = useState<BorrowingWithDetails | null>(null)
+  const [bookGivenTarget, setBookGivenTarget] = useState<BookRequestWithDetails | null>(null)
+  const [historyRequest, setHistoryRequest] = useState<BookRequestWithDetails | null>(null)
   const [deleteLoanTarget, setDeleteLoanTarget] = useState<BorrowingWithDetails | null>(null)
   const deleteBorrowing = useDeleteBorrowing()
 
@@ -118,6 +127,31 @@ export default function BorrowingPage() {
     }
   }
 
+  // View borrowing record linked to a fulfilled request
+  async function handleViewBorrowingRecord(req: BookRequestWithDetails) {
+    const { data: loan, error } = await supabase
+      .from('borrowings')
+      .select(`
+        *,
+        book:books(id, book_code, title, cover_image_url, status),
+        employee:employees(id, full_name, department, employee_code)
+      `)
+      .eq('book_id', req.book_id)
+      .eq('employee_id', req.employee_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (loan) {
+      setDetailLoan(loan as unknown as BorrowingWithDetails)
+    } else {
+      toast({
+        title: 'Borrowing Record',
+        description: `This request for "${req.book?.title}" by ${req.employee?.full_name} is marked Fulfilled.`,
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -154,6 +188,7 @@ export default function BorrowingPage() {
       {/* Operations Navigation Tabs */}
       <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
         <button
+          id="tab-btn-loans"
           onClick={() => { setActiveTab('loans'); setPage(1); setSearchParams({ tab: 'loans' }); }}
           className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
             activeTab === 'loans'
@@ -164,6 +199,7 @@ export default function BorrowingPage() {
           Current Active Loans
         </button>
         <button
+          id="tab-btn-overdue"
           onClick={() => { setActiveTab('overdue'); setPage(1); setSearchParams({ tab: 'overdue' }); }}
           className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
             activeTab === 'overdue'
@@ -174,6 +210,7 @@ export default function BorrowingPage() {
           Overdue Books
         </button>
         <button
+          id="tab-btn-waiting-lists"
           onClick={() => { setActiveTab('waiting-lists'); setSearchParams({ tab: 'waiting-lists' }); }}
           className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
             activeTab === 'waiting-lists'
@@ -184,6 +221,7 @@ export default function BorrowingPage() {
           Waiting Lists by Book ({Object.keys(waitingListsByBook).length})
         </button>
         <button
+          id="tab-btn-requests"
           onClick={() => { setActiveTab('requests'); setSearchParams({ tab: 'requests' }); }}
           className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
             activeTab === 'requests'
@@ -194,6 +232,7 @@ export default function BorrowingPage() {
           All Requests History
         </button>
         <button
+          id="tab-btn-returned"
           onClick={() => { setActiveTab('returned'); setPage(1); setSearchParams({ tab: 'returned' }); }}
           className={`px-4 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
             activeTab === 'returned'
@@ -207,11 +246,11 @@ export default function BorrowingPage() {
 
       {/* ─── TAB: Current Loans / Overdue / Returned ─────────────── */}
       {(activeTab === 'loans' || activeTab === 'overdue' || activeTab === 'returned') && (
-        <div className="rounded-xl border bg-card overflow-hidden shadow-2xs">
+        <div className="rounded-xl border bg-card overflow-hidden shadow-2xs space-y-4">
           {loansQuery.error ? (
             <div className="p-6"><ErrorMessage message="Failed to load loan records." /></div>
           ) : loansQuery.isLoading ? (
-            <div className="p-6"><LoadingRows columns={7} rows={6} /></div>
+            <div className="p-6"><LoadingRows columns={8} rows={6} /></div>
           ) : loans.length === 0 ? (
             <div className="p-8">
               <EmptyState
@@ -231,12 +270,14 @@ export default function BorrowingPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/40 text-muted-foreground text-left font-medium">
+                    <th className="py-3 px-3 w-12 text-center">Book Cover</th>
                     <th className="py-3 px-4">Book Title</th>
-                    <th className="py-3 px-4">Borrower</th>
+                    <th className="py-3 px-4">Book ID</th>
+                    <th className="py-3 px-4">Reader Name</th>
                     <th className="py-3 px-4">Department</th>
                     <th className="py-3 px-4">Issue Date</th>
-                    <th className="py-3 px-4">{activeTab === 'returned' ? 'Return Date' : 'Due Date'}</th>
-                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">{activeTab === 'returned' ? 'Return Date' : 'Expected Return Date'}</th>
+                    <th className="py-3 px-4">Loan Status</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -245,33 +286,43 @@ export default function BorrowingPage() {
                     const overdue = isOverdue(loan.due_date, loan.return_date)
                     return (
                       <tr key={loan.id} className="hover:bg-muted/25 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <BookCover src={loan.book?.cover_image_url} title={loan.book?.title} size="sm" />
-                            <div>
-                              <p className="font-semibold text-foreground">{loan.book?.title}</p>
-                              <span className="text-[10px] font-mono text-muted-foreground">{loan.book?.book_code}</span>
-                            </div>
-                          </div>
+                        {/* 1. Book Cover */}
+                        <td className="py-3 px-3 text-center">
+                          <BookCover src={loan.book?.cover_image_url} title={loan.book?.title} size="sm" />
                         </td>
+                        {/* 2. Book Title */}
+                        <td className="py-3 px-4 font-semibold text-foreground">
+                          {loan.book?.title}
+                        </td>
+                        {/* 3. Book ID */}
+                        <td className="py-3 px-4">
+                          <span className="font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded border border-border/60 text-muted-foreground">
+                            {loan.book?.book_code}
+                          </span>
+                        </td>
+                        {/* 4. Reader Name */}
                         <td className="py-3 px-4 font-medium text-foreground">
                           {loan.employee?.full_name}
                         </td>
+                        {/* 5. Department */}
                         <td className="py-3 px-4 text-muted-foreground">
                           {loan.employee?.department || '—'}
                         </td>
+                        {/* 6. Issue Date */}
                         <td className="py-3 px-4 text-muted-foreground">
                           {formatDate(loan.issue_date)}
                         </td>
+                        {/* 7. Expected Return Date */}
                         <td className="py-3 px-4">
                           {activeTab === 'returned' ? (
-                            <span className="text-muted-foreground">{formatDate(loan.return_date)}</span>
+                            <span className="text-muted-foreground font-medium">{formatDate(loan.return_date)}</span>
                           ) : (
                             <span className={overdue ? 'text-red-600 font-bold' : 'text-foreground font-medium'}>
                               {formatDate(loan.due_date)} {overdue && `(${daysOverdue(loan.due_date)}d overdue)`}
                             </span>
                           )}
                         </td>
+                        {/* 8. Loan Status */}
                         <td className="py-3 px-4">
                           {loan.return_date ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-gray-700 font-medium">
@@ -287,23 +338,51 @@ export default function BorrowingPage() {
                             </span>
                           )}
                         </td>
+                        {/* 9. Actions */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDetailLoan(loan)}
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              title="View Details"
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              View Details
+                            </Button>
+
                             {!loan.return_date && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setReturnLoan(loan)}
-                                className="h-7 text-xs bg-forest/5 hover:bg-forest/10 text-forest border-forest/20"
-                              >
-                                Return
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setReturnLoan(loan)}
+                                  className="h-7 px-2 text-xs bg-forest/5 hover:bg-forest/10 text-forest border-forest/20 font-medium"
+                                  title="Mark as Returned"
+                                >
+                                  <RotateCcw className="h-3 w-3 mr-1" />
+                                  Mark as Returned
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setEditDueLoan(loan)}
+                                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                  title="Edit Due Date"
+                                >
+                                  <Calendar className="h-3.5 w-3.5 mr-1" />
+                                  Edit Due Date
+                                </Button>
+                              </>
                             )}
+
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setDeleteLoanTarget(loan)}
                               className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                              title="Delete Record"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -314,6 +393,33 @@ export default function BorrowingPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="p-3 border-t flex items-center justify-between text-xs text-muted-foreground">
+              <span>Showing Page {page} of {totalPages} ({total} records total)</span>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="h-7 text-xs"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="h-7 text-xs"
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -337,7 +443,9 @@ export default function BorrowingPage() {
                     <BookCover src={group.book?.cover_image_url} title={group.book?.title} size="sm" />
                     <div>
                       <h3 className="font-serif font-bold text-sm text-foreground">{group.book?.title}</h3>
-                      <p className="text-xs text-muted-foreground font-mono">{group.book?.book_code} · Status: {group.book?.status}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {group.book?.book_code} · Current Book Status: <strong>{group.book?.status === 'Borrowed' ? 'On Loan' : group.book?.status}</strong>
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -357,7 +465,7 @@ export default function BorrowingPage() {
                         <th className="py-2 px-2 font-medium">Department</th>
                         <th className="py-2 px-2 font-medium">Request Date</th>
                         <th className="py-2 px-2 font-medium">Status</th>
-                        <th className="py-2 pl-2 text-right font-medium">Queue Controls</th>
+                        <th className="py-2 pl-2 text-right font-medium">Available Admin Action & Controls</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/30">
@@ -370,15 +478,15 @@ export default function BorrowingPage() {
                           <td className="py-2.5 px-2">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                               req.status === 'Ready for Pickup'
-                                ? 'bg-emerald-100 text-emerald-800 font-bold'
+                                ? 'bg-emerald-100 text-emerald-800 font-bold border border-emerald-300'
                                 : 'bg-amber-100 text-amber-800'
                             }`}>
                               {req.status}
                             </span>
                           </td>
                           <td className="py-2.5 pl-2 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Ready for Pickup Action */}
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {/* 1. Action: Waiting -> Mark Pickup */}
                               {req.status === 'Waiting' && (
                                 <Button
                                   size="sm"
@@ -387,54 +495,95 @@ export default function BorrowingPage() {
                                     requestId: req.id,
                                     bookId: req.book_id,
                                     status: 'Ready for Pickup',
-                                    reason: 'Notified member that book is ready for pickup',
+                                    reason: 'Marked ready for pickup by librarian',
                                   })}
-                                  className="h-7 text-[11px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                                  className="h-7 text-[11px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 font-medium"
                                 >
                                   Mark Pickup
                                 </Button>
                               )}
 
-                              {/* Manual Reorder Buttons */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                title="Move up one position"
-                                disabled={idx === 0}
-                                onClick={() => {
-                                  setReorderTarget(req)
-                                  setReorderDirection('up')
-                                }}
-                                className="h-7 w-7 p-0"
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                title="Move down one position"
-                                disabled={idx === group.requests.length - 1}
-                                onClick={() => {
-                                  setReorderTarget(req)
-                                  setReorderDirection('down')
-                                }}
-                                className="h-7 w-7 p-0"
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                title="Move to first position (Override FIFO)"
-                                disabled={idx === 0}
-                                onClick={() => {
-                                  setReorderTarget(req)
-                                  setReorderDirection('top')
-                                }}
-                                className="h-7 w-7 p-0 text-amber-700"
-                              >
-                                <ArrowUpToLine className="h-3.5 w-3.5" />
-                              </Button>
+                              {/* 2. Action: Ready for Pickup -> Book Given / Issue Book */}
+                              {req.status === 'Ready for Pickup' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setBookGivenTarget(req)}
+                                    className="h-7 text-xs bg-forest hover:bg-forest-dark text-white font-medium shadow-2xs flex items-center gap-1"
+                                    id={`book-given-btn-${req.id}`}
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5 mr-0.5" />
+                                    Book Given / Issue Book
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      statusMutation.mutate({
+                                        requestId: req.id,
+                                        bookId: req.book_id,
+                                        status: 'Waiting',
+                                        reason: 'Reservation released by librarian (reader did not collect)',
+                                      })
+                                      toast({
+                                        title: 'Reservation Released',
+                                        description: `${req.employee?.full_name}'s request reverted to Waiting. Copy released.`,
+                                      })
+                                    }}
+                                    className="h-7 text-[11px] text-amber-800 hover:bg-amber-50 border-amber-300"
+                                    title="Release reservation if reader did not collect"
+                                  >
+                                    <Undo2 className="h-3 w-3 mr-1" />
+                                    Release
+                                  </Button>
+                                </>
+                              )}
+
+                              {/* 3. Manual Reorder Controls */}
+                              <div className="flex items-center border rounded-md overflow-hidden bg-background">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Move up one position"
+                                  disabled={idx === 0}
+                                  onClick={() => {
+                                    setReorderTarget(req)
+                                    setReorderDirection('up')
+                                  }}
+                                  className="h-7 w-7 p-0 rounded-none border-r"
+                                >
+                                  <ArrowUp className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Move down one position"
+                                  disabled={idx === group.requests.length - 1}
+                                  onClick={() => {
+                                    setReorderTarget(req)
+                                    setReorderDirection('down')
+                                  }}
+                                  className="h-7 w-7 p-0 rounded-none border-r"
+                                >
+                                  <ArrowDown className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Move to first position (Override FIFO)"
+                                  disabled={idx === 0}
+                                  onClick={() => {
+                                    setReorderTarget(req)
+                                    setReorderDirection('top')
+                                  }}
+                                  className="h-7 w-7 p-0 rounded-none text-amber-700"
+                                >
+                                  <ArrowUpToLine className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+
+                              {/* 4. Cancel Request Button */}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -449,7 +598,7 @@ export default function BorrowingPage() {
                                     })
                                   }
                                 }}
-                                className="h-7 w-7 p-0 text-destructive"
+                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -503,6 +652,7 @@ export default function BorrowingPage() {
                   <th className="py-3 px-4 font-medium">Queue Position</th>
                   <th className="py-3 px-4 font-medium">Request Date</th>
                   <th className="py-3 px-4 font-medium">Status</th>
+                  <th className="py-3 px-4 font-medium text-right">Available Admin Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -517,13 +667,71 @@ export default function BorrowingPage() {
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(req.request_date)}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                        req.status === 'Ready for Pickup' ? 'bg-emerald-100 text-emerald-800' :
+                        req.status === 'Ready for Pickup' ? 'bg-emerald-100 text-emerald-800 font-semibold' :
                         req.status === 'Fulfilled' ? 'bg-blue-100 text-blue-800' :
                         req.status === 'Cancelled' ? 'bg-gray-100 text-gray-700' :
                         'bg-amber-100 text-amber-800'
                       }`}>
                         {req.status}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Waiting: Mark Pickup */}
+                        {req.status === 'Waiting' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => statusMutation.mutate({
+                              requestId: req.id,
+                              bookId: req.book_id,
+                              status: 'Ready for Pickup',
+                              reason: 'Marked ready for pickup from requests history',
+                            })}
+                            className="h-7 text-[11px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+                          >
+                            Mark Pickup
+                          </Button>
+                        )}
+
+                        {/* Ready for Pickup: Book Given */}
+                        {req.status === 'Ready for Pickup' && (
+                          <Button
+                            size="sm"
+                            onClick={() => setBookGivenTarget(req)}
+                            className="h-7 text-xs bg-forest hover:bg-forest-dark text-white font-medium"
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Book Given
+                          </Button>
+                        )}
+
+                        {/* Fulfilled: View Borrowing Record */}
+                        {req.status === 'Fulfilled' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewBorrowingRecord(req)}
+                            className="h-7 text-xs text-forest hover:bg-forest/5 border-forest/20"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Borrowing Record
+                          </Button>
+                        )}
+
+                        {/* Cancelled: View Request History */}
+                        {req.status === 'Cancelled' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setHistoryRequest(req)}
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <History className="h-3 w-3 mr-1" />
+                            View Request History
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -598,14 +806,49 @@ export default function BorrowingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialogs */}
+      {/* All Dialogs */}
       <IssueBookDialog open={issueOpen} onOpenChange={setIssueOpen} />
       <AddRequestDialog open={addRequestOpen} onOpenChange={setAddRequestOpen} />
+
+      {bookGivenTarget && (
+        <BookGivenDialog
+          open={!!bookGivenTarget}
+          onOpenChange={open => !open && setBookGivenTarget(null)}
+          request={bookGivenTarget}
+        />
+      )}
+
       {returnLoan && (
         <ReturnBookDialog
           open={!!returnLoan}
           onOpenChange={open => !open && setReturnLoan(null)}
           loan={returnLoan}
+        />
+      )}
+
+      {detailLoan && (
+        <LoanDetailDialog
+          open={!!detailLoan}
+          onOpenChange={open => !open && setDetailLoan(null)}
+          loan={detailLoan}
+          onMarkReturn={loan => setReturnLoan(loan)}
+          onEditDueDate={loan => setEditDueLoan(loan)}
+        />
+      )}
+
+      {editDueLoan && (
+        <EditDueDateDialog
+          open={!!editDueLoan}
+          onOpenChange={open => !open && setEditDueLoan(null)}
+          loan={editDueLoan}
+        />
+      )}
+
+      {historyRequest && (
+        <RequestHistoryDialog
+          open={!!historyRequest}
+          onOpenChange={open => !open && setHistoryRequest(null)}
+          request={historyRequest}
         />
       )}
 
